@@ -44,7 +44,7 @@ keyword = [
 ]
 
 preprocessor = [
-    r'(?<=#[ \t]*){0}'.format(i) for i in [
+    r'(?<=#[ \t]*){0}\b'.format(i) for i in [
         'include',  'define',   r'ifn?def', 'endif',    'if',       'elif',
         'else',     'error',    'warning',  'pragma',   'pragma once',
         'pragma comment',
@@ -71,41 +71,58 @@ operator = [
     r'(?<!\boperator\b)[-!%&+*|<^>?:=~/,]',
     r';',
     r'##',
+    r'(?<!^)#',
 ]
 
 
 definition = [
     (
-        r'(?<!\b(?:typedef|throw|return|case)\b\s*)'
+        r'(?<!'
+            r'(?:'
+                r'\b(?:typedef|throw|return|case|static|const)'
+            r'|'r'#define{s}{w}'
+            r')'
+            r'\b{s}*'
+        r')'
+
         r'(?<='
-            r'(?<!(?:[-=+/*(,|&^~]|\b(?:return|throw)\b)\s*)'
+            r'(?<![<([{{])'
 
             r'(?:'
-                r'{name}(?:[*\s]+{name})*[*\s]+'            # type name
-            r'|'r'(?<=(?:\A|[;{{])[^;(=]*\([^;]*)\)[*\s]*'  # constructor
-            r'|'r'(?<=(?:\A|[;{{])[^;<=]*<[^;]*)>[*\s]*'    # templates
-            # r'|'r'(?<=}})[* \t]*'                         # struct
+                r'(?<=(?:\{{|\A|;|{p}){s}*)'
+                r'{w}(?:(?:{s}|\*)+{w})*(?:{s}|\*)+'
+            r'|'r'(?<=\}})'
+            r'|'r'(?<=(?:\{{|\A|;|{p})[^;<(=]*<[^;]*)>(?:{s}|\*)*'
             r')'
 
             r'(?:'
-                r'{name}'                                   # variable
-                r'(?:\s*\[\d*\]\s*)*'                       # array
+                r'{w}'
                 r'(?:'
-                    r'='                                    # initialization
+                    r'{s}*\[\d*\]{s}*(?:=\{{.*\}})?'        # array
+                r'|'r'{s}*\((?:\)(?!{s}*\w)|[^);])*\)'     # constructor
+                r'|'r'{s}*={s}*'
                     r'(?:'
-                        r'{{.+}}'                           # array
-                    r'|'r"'[^']*'"                          # char
-                    r'|'r'"[^"]*(?:\\.[^"]*)*"'             # string
-                    r'|'r'[^,]*'                            # constant, etc.
+                        r'[^(]*\([^,;]*\)[^,;]*'            # todo func
+                    r'|'r"'(?:[^\\]|\\[^Xx0-7]|\\.+)'"      # todo char
+                    r'|'r'@?"[^"\\]*(?:\\.[^"\\]*)*"'       # string
+                    r'|'r'[^,();]*'
                     r')'
-                r'|'r'(?:\(.+\))'                           # constructor
                 r')?'
-                r'\s*(?:,|::)[*\s]*'
+                r'{s}*(?:,|::)(?:{s}|\*)*'
             r')*'
         r')'
-        r'{name}'
-    ).format(name=r'(?:\b[_A-Za-z]\w*)'),
-
+        r'{w}'
+    ).format(
+        w=r'(?:\b[_A-Za-z]\w*)',
+        s=(
+            r'(?:'
+                r'\s+'
+            r'|'r'//[^\r\n]*'
+            r'|'r'/\*[^*]*(?:\*[^/]?|[^*]*)*\*/'
+            r')'
+        ),
+        p=r'^#[^\r\n\\]*(?:\\.|[^\r\n\\]*)*',  # todo no need?
+    ),
 
     r'(?<='
         r'(?<=\})[* \t]*'
@@ -127,7 +144,19 @@ definition = [
     r'|'r'\b(?:new|delete)\b'
     r'|'r'\(\s*\)|\[\s*\]'
     r'|'r'[~,]'
-    r')'
+    r')',
+
+    r'{w}(?={s}*\([^);]*\){s}*\{{)'.format(
+        w=r'(?:\b[_A-Za-z]\w*)',
+        s=(
+            r'(?:'
+                r'\s+'
+            r'|'r'//[^\r\n]*'
+            r'|'r'/\*[^*]*(?:\*[^/]?|[^*]*)*\*/'
+            r')'
+        )
+    ),
+
 ]
 
 comment = [
@@ -136,7 +165,33 @@ comment = [
 ]
 
 userdefined = [
-    r'\b\w+_t\b',   r'\b[_A-Za-z]\w*(?=\s*\()',
+    r'\b\w+_t\b',
+
+    (
+        r'{w}'
+        r'(?='
+            r'{s}*\('
+            r'(?!'
+                r'{s}*'
+                r'(?:'
+                    r'{w}{s}*'
+                    r'{w}(?:{s}*={s}*[^,);{{]+)?'
+                    r'{s}*'
+                r')*'
+            r'{s}*'
+            r'\){s}*\{{'
+            r')'
+        r')'
+    ).format(
+        w=r'\b[_A-Za-z]\w*',
+        s=(
+            r'(?:'
+                r'\s+'
+            r'|'r'//[^\r\n]*'
+            r'|'r'/\*[^*]*(?:\*[^/]?|[^*]*)*\*/'
+            r')'
+        ),
+    ),
 ]
 
 KEYWORD = any('KEYWORD', keyword)
@@ -177,7 +232,7 @@ r'|'r'(?P<FORMAT>%'
         r'(?:[-+ 0#])?'
         r'(?:\d+)?'
         r'(?:\.\d+)?'
-        r'(?:[Luhl]+)?'
+        r'(?:[Luhl]+|I\d+)?'
         r'(?:[diuoxXcsfeEgGp%])'
     r')'
 )
