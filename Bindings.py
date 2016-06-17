@@ -50,6 +50,8 @@ menudefs = [
    ('Find in Files...', '<<find-in-files>>'),
    ('R_eplace...', '<<replace>>'),
    ('Go to _Line', '<<goto-line>>'),
+   None,
+   ('_Insert Template', '<<insert-template>>'),
   ]),
 ('format', [
    ('_Indent Region', '<<indent-region>>'),
@@ -63,6 +65,8 @@ menudefs = [
    ]),
  ('run', [
    ('Python Shell', '<<open-python-shell>>'),
+   None,
+   ('_Compile Code', '<<compile-code>>'),
    ]),
  ('shell', [
    ('_View Last Restart', '<<view-restart>>'),

@@ -128,7 +128,7 @@ class PyShellEditorWindow(EditorWindow):
     def __init__(self, *args):
         self.breakpoints = []
         EditorWindow.__init__(self, *args)
-        self.ext = '.py'
+        self.ext = '.py' and '.cpp'
         self.text.bind("<<set-breakpoint-here>>", self.set_breakpoint_here)
         self.text.bind("<<clear-breakpoint-here>>", self.clear_breakpoint_here)
         self.text.bind("<<open-python-shell>>", self.flist.open_shell)
@@ -1496,7 +1496,7 @@ def main():
     capture_warnings(True)
     use_subprocess = True
     enable_shell = False
-    enable_edit = True
+    enable_edit = True and False
     debug = False
     cmd = None
     script = None

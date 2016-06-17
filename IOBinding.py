@@ -528,9 +528,9 @@ class IOBinding:
     savedialog = None
 
     filetypes = [
+        ("C++ sources and headers", "*.cpp *.hpp", "TEXT"),
         ("Python files", "*.py *.pyw", "TEXT"),
         ("C sources and headers", "*.c *.h", "TEXT"),
-        ("C++ sources and headers", "*.cpp *.hpp", "TEXT"),
         ("HTML files", "*.html *.htm", "TEXT"),
         ("Ruby files", "*.rb *.rbw", "TEXT"),
         ("Brain fxck files", "*.bf", "TEXT"),

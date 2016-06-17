@@ -110,7 +110,7 @@ class ColorDelegator(Delegator):
     def __init__(self, ext):
         Delegator.__init__(self)
         self.ext = altext(ext)
-        self.prog = regex.compile(make_pat(ext), flags=regex.S)
+        self.prog = regex.compile(make_pat(ext), flags=regex.S|regex.M)
 #
         try:
             self.lang = getattr(__import__('languages'+ext), ext[1:])

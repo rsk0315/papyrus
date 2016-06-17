@@ -139,6 +139,7 @@ class EditorWindow(object):
     from idlelib.MultiStatusBar import MultiStatusBar
 
     from idlelib.ModeBar import ModeBar
+    from idlelib.XXXBar import XXXBar
 
     help_url = None
 
@@ -209,6 +210,7 @@ class EditorWindow(object):
         self.text = text = MultiCallCreator(Text)(text_frame, **text_options)
         self.top.focused_widget = self.text
 
+        self.set_xxx_bar()
         self.set_mode_bar()
 
         self.createmenubar()
@@ -261,6 +263,9 @@ class EditorWindow(object):
         text.bind("<<del-word-left>>", self.del_word_left)
         text.bind("<<del-word-right>>", self.del_word_right)
         text.bind("<<beginning-of-line>>", self.home_callback)
+
+        text.bind("<<insert-template>>", self.insert_template)
+        text.bind("<<compile-code>>", self.compile_code)
 
         if flist:
             flist.inversedict[self] = key
@@ -367,7 +372,7 @@ class EditorWindow(object):
         self.askinteger = tkSimpleDialog.askinteger
         self.showerror = tkMessageBox.showerror
 
-        self.ext = '.py' # and '.cpp' # to default to C++
+##        self.ext = '.py' and '.cpp' # to default to C++
 
     def _filename_to_unicode(self, filename):
         """convert filename to unicode in order to display it in Tk"""
@@ -461,17 +466,18 @@ class EditorWindow(object):
 
     # TODO -- emacs-like mode bar --
     def set_mode_bar(self):
-        self.mode_bar = self.ModeBar(self.top)
+        bg = '#e0e0e0'
+        self.mode_bar = self.ModeBar(self.top, bg=bg)
         sep = Frame(self.top, height=1, borderwidth=1, background='grey75')
 
         self.mode_bar.set_label(
-            'coding_eol', '-:---', side=LEFT, font='Consolas 10')
+            'coding_eol', '-:---', side=LEFT, font='Consolas 10', bg=bg)
         self.mode_bar.set_label(
-            'short_name', '*IDLE*', side=LEFT, font=('Consolas', 10, 'bold'))
+            'short_name', '*IDLE*', side=LEFT, font=('Consolas', 10, 'bold'), bg=bg)
         self.mode_bar.set_label(
-            'filetype', '(Python)', side=LEFT, font='Consolas 10')
+            'filetype', '(Python)', side=LEFT, font='Consolas 10', bg=bg)
         self.mode_bar.set_label(
-            'column_line', 'L? C?', side=LEFT, font='Consolas 10')
+            'column_line', 'L? C?', side=LEFT, font='Consolas 10', bg=bg)
 
         self.mode_bar.pack(side=BOTTOM, fill=X)
         sep.pack(side=BOTTOM, fill=X)
@@ -489,6 +495,18 @@ class EditorWindow(object):
         self.text.after_idle(self.set_short_name)
         self.text.after_idle(self.set_filetype)
         self.text.after_idle(self.set_line_and_column)
+
+    def set_xxx_bar(self):
+        self.xxx_bar = self.XXXBar(self.top, bg='#ffffff')
+        sep = Frame(self.top, height=1, borderwidth=1, background='grey75')
+
+        self.xxx_bar.set_label(
+            'xxx',
+            " @rsk0315_h4x",
+            side=LEFT, font='Consolas 10', bg='white'
+        )
+        self.xxx_bar.pack(side=BOTTOM, fill=X)
+        sep.pack(side=BOTTOM, fill=X)
 
     def set_coding_eol(self, event=None):
         encoding = self.encoding
@@ -531,6 +549,12 @@ class EditorWindow(object):
             'filetype',
             '(' + f + ')'
         )
+
+        if self.io.filename:
+            self.ispythonsource(self.io.filename)
+        else:
+            self.ext = dict((v, k) for k, v in FILETYPES.items()).get(f, '.txt')
+
     # ---
 
     menu_specs = [
@@ -541,6 +565,7 @@ class EditorWindow(object):
         ("run", "_Run"),
         ("options", "_Options"),
         ("windows", "_Window"),
+        ("develop", "_Develop"),
         ("help", "_Help"),
     ]
 
@@ -563,7 +588,7 @@ class EditorWindow(object):
             if 'highlight' in [e[0] for e in self.menu_specs]:
                 self.ftype = StringVar()
                 self.ftype.set(
-                    'Python' # and 'C++/l Abbrev' to default to C++
+                    'Python' and 'C++/l Abbrev' # to default to C++
                 )
         except AttributeError:
             pass
@@ -590,12 +615,127 @@ class EditorWindow(object):
                 menudict['highlight'].add_radiobutton(label='Plain text', underline=8,
                     variable=self.ftype, value='Fundamental', command=self.hilite_as('.txt'))
         except (AttributeError, KeyError) as e:
-            print e
-##        except ZeroDivisionError: raise 0
+            pass  # print e
+
+        try:
+            if 'develop' in menudict:
+                _idle_path = os.path.dirname(__file__)
+                _my_dev_files = [
+                    ('Bindings', 0),
+                    ('ColorDelegator', 0),
+                    ('EditorWindow', 0), 
+                    ('languages\\cpp', 11),
+                ]
+                fileopen = lambda fn: self.io.open(editFile=os.path.join(_idle_path, fn+'.py'))
+
+                menudict['develop'].add_command(
+                    label='Bindings', underline=0, command=lambda: fileopen('Bindings'))
+                menudict['develop'].add_command(
+                    label='ColorDelegator', underline=0, command=lambda: fileopen('ColorDelegator'))
+                menudict['develop'].add_command(
+                    label='EditorWindow', underline=0, command=lambda: fileopen('EditorWindow'))
+                menudict['develop'].add_command(
+                    label='cpp.highlight', underline=4, command=lambda: fileopen('languages\\cpp'))
+                menudict['develop'].add_command(
+                    label='cpp.template', underline=4, command=lambda: self.io.open(editFile=os.path.join(_idle_path, 'templates', 'cpp.tpl')))
+
+##                for fn, ul in _my_dev_files:
+##                    print fn, ul
+##                    menudict['develop'].add_command(
+##                        label=fn, underline=ul,
+##                        command=lambda: self.io.open(
+##                            editFile=os.path.join(_idle_path, fn+'.py')
+##                        )
+##                    )
+        except (AttributeError, KeyError) as e:
+            pass
+
+##        menudict['edit'].add_separator()
+##        menudict['edit'].add_command(
+##            label='Insert template', underline=7, command=self.insert_template
+##        )
 
         self.fill_menus()
         self.base_helpmenu_length = self.menudict['help'].index(END)
         self.reset_help_menu_entries()
+
+    def insert_template(self, event):
+        if not hasattr(self, 'ext'):
+            return 1
+
+        template_text = ''
+
+        # TODO; create .def files and get path from them
+        idlelib_path = os.path.dirname(__file__)
+        template_file = '{}/templates/{}.tpl'.format(idlelib_path, self.ext[1:])
+        try:
+            with open(template_file, 'r') as fin:
+                template_text = fin.read()
+        except:
+            pass
+
+        self.text.insert('1.0', template_text)
+
+    def compile_code(self, event):
+        if not hasattr(self.io, 'filename') or self.io.filename is None:
+            return 1
+
+        if self.ext in ('.c', '.h'):
+            compiler = 'gcc'
+        elif self.ext in ('.cpp', '.hpp'):
+            compiler = 'g++'
+        else:
+            return 1
+
+        exec_name = os.path.splitext(self.io.filename)[0]+'.exe'
+        basename = os.path.basename(self.io.filename)
+        args = [compiler, '-Wall', '-o', exec_name, self.io.filename]
+        if self.ext in ('.c', '.h'):
+            args += '-lm'  # todo?
+
+        import subprocess
+        sp = subprocess.Popen(
+            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+        compile_failed = sp.wait()
+        compile_message = sp.communicate()[1]  # stderr
+        compile_message = re.sub(
+            r'^{}:'.format(self.io.filename.replace('\\', r'\\')),
+            basename+':',
+            compile_message,
+            flags=re.M,
+        )  # XXX
+
+        if not compile_message:
+            tkMessageBox.showinfo(
+                parent=self.text,
+                title=compiler,
+                message='Compilation succeeded.',
+            )
+            return 0
+
+        import ScrolledText
+        sub_win = Toplevel(self.text)
+
+        if compile_failed:
+            title = 'Compilation failed'
+        else:
+            title = 'Compilation succeeded (with warning)'
+
+        sub_win.title(title)
+
+        ce = ScrolledText.ScrolledText(
+            sub_win, width=80, fg='white', bg='black', font='Consolas 10',
+        )
+        def close_(w, event=None):
+            w.grab_release()
+            w.withdraw()
+
+        ce.bind('<Escape>', lambda event: close_(sub_win, event))
+        ce.pack(fill='both', expand=True)
+        ce.insert('1.0', compile_message)
+        ce.focus_set()
+
 
     def postwindowsmenu(self):
         # Only called when Windows menu exists
@@ -844,8 +984,9 @@ class EditorWindow(object):
             self.center()
 
     def ispythonsource(self, filename):
-        if not filename or os.path.isdir(filename):
-            return '.py' # and '.cpp' # to default to C++
+        #if not filename or os.path.isdir(filename):
+        if not filename:
+            return '.py' and '.cpp' # to default to C++
         base, ext = os.path.splitext(os.path.basename(filename))
 
         if ext or self.ext:
@@ -853,10 +994,15 @@ class EditorWindow(object):
                 self.ext = ext
 
             filetype = FILETYPES.get(self.ext, self.ext.upper().lstrip('.'))
+            if self.ext in ('.tpl',):
+                if ('.'+base) in FILETYPES:
+                    filetype = FILETYPES['.'+base]
+                    self.ext = '.'+base  # xxx
+
             self.ftype.set(filetype)
             self.mode_bar.set_label('filetype', '('+filetype+')')
 
-            return ext or self.ext
+            return self.ext
         else:
             return os.path.normcase(ext)
 
@@ -1595,20 +1741,35 @@ class EditorWindow(object):
 
     def comment_region_event(self, event):
         head, tail, chars, lines = self.get_region()
+        if self.ext in ('.py', '.pyw', '.rb', '.rbw'):
+            comchar = '##'
+        elif self.ext in ('.c', '.h', '.cpp', '.hpp'):
+            comchar = '//'
+            ## xxx /*...*/ for C
+        else:
+            return
+
         for pos in range(len(lines) - 1):
             line = lines[pos]
-            lines[pos] = '##' + line
+            lines[pos] = comchar + line
         self.set_region(head, tail, chars, lines)
 
     def uncomment_region_event(self, event):
         head, tail, chars, lines = self.get_region()
+        if self.ext in ('.py', '.pyw', '.rb', '.rbw'):
+            comchar = '##'
+        elif self.ext in ('.c', '.h', '.cpp', '.hpp'):
+            comchar = '//'
+        else:
+            return
+
         for pos in range(len(lines)):
             line = lines[pos]
             if not line:
                 continue
-            if line[:2] == '##':
+            if line[:2] == comchar:
                 line = line[2:]
-            elif line[:1] == '#':
+            elif line[:1] == '#' and comchar == '##':
                 line = line[1:]
             lines[pos] = line
         self.set_region(head, tail, chars, lines)
