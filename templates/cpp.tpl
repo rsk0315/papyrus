@@ -11,16 +11,15 @@
 #include <bitset>
 #include <utility>
 
-#define EPS (1e-9)
 #define key first
 #define val second
-#define debug(o) cout << #o << " " << o << endl;
+#define debug(o) cerr << #o << ": " << (o) << endl;
+#define debugl(o) cerr << #o << ": " << (o) << " (L" << __LINE__ << ")\n";
 #define putd(d) printf("%d\n", d)
 #define putf(f) printf("%.16f\n", f)
 #define whole(s) s.begin(), s.end()
 
 using namespace std;
-
 
 typedef char i8;
 typedef short i16;
@@ -37,89 +36,146 @@ typedef vector<vi> vvi;
 typedef pair<int, int> pii;
 typedef map<int, int> mii;
 typedef map<int, char> mic;
+typedef map<int, string> mis;
 typedef map<char, int> mci;
+typedef map<char, char> mcc;
+typedef map<char, string> mcs;
 typedef map<string, int> msi;
+typedef map<string, string> mss;
 
-struct UnionFind {
+const i32 MOD=1e9+7;
+const f64 EPS=1e-10;
+const int di[4]={1,0,-1,0}, dj[4]={0,1,0,-1};
+const int dI[8]={-1,0,1,-1,1,-1,0,1}, dJ[8]={-1,-1,-1,0,0,1,1,1};
+
+struct UnionFindTree {
     int n;
-    vector<int> d;
-    UnionFind(void) {}
-    UnionFind(int m) {
-        n = m;
-        d = vector<int>(n, -1);
+    vector<int> tree;
+    UnionFindTree(int m) {
+        tree = vector<int>(n=m, -1);
     }
     int find_root(int v) {
-        if (d[v] < 0) return v;
-        return d[v] = find_root(d[v]);
+        if (tree[v] < 0) return v;
+        return tree[v] = find_root(tree[v]);
     }
     bool unite(int x, int y) {
         x = find_root(x);
         y = find_root(y);
         if (x == y) return false;
-        if (size(x) < size(y)) swap(x, y);
-        d[x] += d[y];
-        d[y] = x;
+        if (rank(x) < rank(y)) swap(x, y);
+        tree[x] += tree[y];
+        tree[y] = x;
         return true;
     }
-    int size(int v) {
-        return -d[find_root(v)];
+    int rank(int v) {
+        return -tree[find_root(v)];
     }
 };
 
 template <typename T>
-struct SegmentTree {
-    int num_leaf;
-    vector<T> d;
-    T fill;
-    T (*func)(T, T);
-    const T& (*cfunc)(const T&, const T&);
-    bool use_constfunc;
+class SegmentTree {
+private:
+    typedef const T cT;
+    int n;          // the number of nodes + 1
+    vector<T> tree; // 1-indexed tree
+    T e;            // neutral element for given func
+    T (*vfunc)(T, T);
+    cT& (*cfunc)(cT&, cT&);
+    bool use_const_func;
 
-    SegmentTree(int n, const T& (*func_)(const T&, const T&)=max<T>, T fill_=0) {
-        cfunc = func_;
-        use_constfunc = true;
-        num_leaf = 1;
-        while (num_leaf < n) num_leaf <<= 1;
-        fill = fill_;
-        d = vector<T>(num_leaf<<1, fill);
+    void make_tree(int m, T fill) {
+        n = 1;
+        while (n < m) n <<= 1;
+        tree = vector<T>(n<<1, e=fill);
     }
-    SegmentTree(int n, T (*func_)(T, T), T fill_=0) {
-        func = func_;
-        use_constfunc = false;
-        num_leaf = 1;
-        while (num_leaf < n) num_leaf <<= 1;
-        fill = fill_;
-        d = vector<T>(num_leaf<<1, fill);
+    T func(T x, T y) {
+        if (use_const_func) {
+            return (*cfunc)(x, y);
+        } else {
+            return (*vfunc)(x, y);
+        }
     }
-    // returns f(d[i], d[i+1], ..., d[j]) for i, j in [a, b)
-    T get_value(int a, int b, int node=1, int l=0, int r=-1) {
-        if (r == -1) r = num_leaf;
-        if (a<=l && b>=r) return d[node];
 
-        T value=fill;
+public:
+    SegmentTree(int m, cT& (*f)(cT&, cT&)=max<T>, T fill=0) {
+        cfunc = f;
+        use_const_func = true;
+        make_tree(m, fill);
+    }
+    SegmentTree(int m, T (*f)(T, T), T fill=0) {
+        vfunc = f;
+        use_const_func = false;
+        make_tree(m, fill);
+    }
+    //   let leaf[i] == tree[n+i-1],
+    // returns f(leaf[a], leaf[a+1], ..., leaf[b-1])
+    T seg_value(int a, int b, int i=1, int l=0, int r=-1) {
+        if (r == -1) r = n;
+        if (a<=l && b>=r) return tree[i];
+
+        T v=e;
         int c=(l+r)>>1;
 
-        if (use_constfunc) {
-            if (c > a) value = (*cfunc)(value, get_value(a, b, node<<1|0, l, c));
-            if (c < b) value = (*cfunc)(value, get_value(a, b, node<<1|1, c, r));
-        } else {
-            if (c > a) value = (*func)(value, get_value(a, b, node<<1|0, l, c));
-            if (c < b) value = (*func)(value, get_value(a, b, node<<1|1, c, r));
-        }
-        return value;
+        if (c > a) v = func(v, seg_value(a, b, i<<1|0, l, c));
+        if (c < b) v = func(v, seg_value(a, b, i<<1|1, c, r));
+        return v;
     }
     void store(int i, T x) {
-        int node=num_leaf+i;
-        while (node) {
-            if (use_constfunc) {
-                d[node] = (*func)(d[node], x);
-            } else {
-                d[node] = (*cfunc)(d[node], x);
-            }
-            node >>= 1;
+        i += n;
+        while (i) {
+            tree[i] = func(tree[i], x);
+            i >>= 1;
         }
     }
 };
+
+template <typename T>
+struct BinaryIndexedTree {
+    int n;
+    vector<T> tree; // 1-indexed tree; stores v[1], ..., v[n]
+    BinaryIndexedTree(int m, T fill=0) {
+        n = m;
+        tree = vector<T>(n+1, fill);
+    }
+    // v[i] += w;
+    void add(int i, T w) {
+        int j;
+        for (j=i; j<=n; j+=j&-j) {
+            tree[i] += w;
+        }
+    }
+    // returns sum of v[i] for i in [1, m]
+    T sum(int m) {
+        T sum_=0;
+        int i;
+        for (i=m; i>0; i-=i&-i) {
+            sum_ += tree[i];
+        }
+        return sum_;
+    }
+};        
+
+// returns n = (b**p) mod m
+i32 modpow(i32 b, i32 p, i32 m) {
+    i64 n=1, a=b%m;
+    while (p) {
+        if (p & 1) {
+            n *= a;
+            n %= m;
+        }
+        a *= a;
+        a %= m;
+        p >>= 1;
+    }
+    return (i32)n;
+}
+
+// returns n \equiv (a/b) (mod m)
+i32 moddiv(i32 a, i32 b, i32 m) {
+    i64 n=a*modpow(b, m-2, m)%m;
+    return (i32)n;
+}
+
 
 int main(void) {
     
