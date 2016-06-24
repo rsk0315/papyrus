@@ -31,8 +31,16 @@ FILETYPES = {
     '.rb': 'Ruby',
     '.rbw': 'Ruby',
     '.html': 'HTML',
+    '.ws': 'Whitespace',
     '.bf': 'Brainf*ck',
+    '.txt': 'Text',
 }  # TODO
+ALT_EXT = {
+    '.pyw': '.py',
+    '.rbw': '.rb',
+    '.hpp': '.cpp',
+    '.h': '.c',
+}
 
 _py_version = ' (%s)' % platform.python_version()
 
@@ -473,7 +481,7 @@ class EditorWindow(object):
         self.mode_bar.set_label(
             'coding_eol', '-:---', side=LEFT, font='Consolas 10', bg=bg)
         self.mode_bar.set_label(
-            'short_name', '*IDLE*', side=LEFT, font=('Consolas', 10, 'bold'), bg=bg)
+            'short_name', '*paPyrus*', side=LEFT, font=('Consolas', 10, 'bold'), bg=bg)
         self.mode_bar.set_label(
             'filetype', '(Python)', side=LEFT, font='Consolas 10', bg=bg)
         self.mode_bar.set_label(
@@ -534,7 +542,7 @@ class EditorWindow(object):
         short_name = self.short_title()
         self.mode_bar.set_label(
             'short_name',
-            short_name if short_name != 'Untitled' else '*IDLE*'
+            short_name if short_name != 'Untitled' else '*paPyrus*'
         )
 
     def set_filetype(self, event=None):
@@ -554,6 +562,7 @@ class EditorWindow(object):
             self.ispythonsource(self.io.filename)
         else:
             self.ext = dict((v, k) for k, v in FILETYPES.items()).get(f, '.txt')
+            self.ext = ALT_EXT.get(self.ext, self.ext)
 
     # ---
 
@@ -635,6 +644,10 @@ class EditorWindow(object):
                 menudict['develop'].add_command(
                     label='EditorWindow', underline=0, command=lambda: fileopen('EditorWindow'))
                 menudict['develop'].add_command(
+                    label='IOBinding', underline=0, command=lambda: fileopen('IOBinding'))
+                menudict['develop'].add_command(
+                    label='PyShell', underline=0, command=lambda: fileopen('PyShell'))
+                menudict['develop'].add_command(
                     label='cpp.highlight', underline=4, command=lambda: fileopen('languages\\cpp'))
                 menudict['develop'].add_command(
                     label='cpp.template', underline=4, command=lambda: self.io.open(editFile=os.path.join(_idle_path, 'templates', 'cpp.tpl')))
@@ -689,9 +702,9 @@ class EditorWindow(object):
 
         exec_name = os.path.splitext(self.io.filename)[0]+'.exe'
         basename = os.path.basename(self.io.filename)
-        args = [compiler, '-Wall', '-o', exec_name, self.io.filename]
+        args = [compiler, '-O2', '-Wall', '-o', exec_name, self.io.filename]
         if self.ext in ('.c', '.h'):
-            args += '-lm'  # todo?
+            args += ['-lm']  # todo?
 
         import subprocess
         sp = subprocess.Popen(
@@ -989,8 +1002,8 @@ class EditorWindow(object):
             return '.py' and '.cpp' # to default to C++
         base, ext = os.path.splitext(os.path.basename(filename))
 
-        if ext or self.ext:
-            if ext:
+        if ext or (hasattr(self, 'ext') and self.ext):
+            if ext and not hasattr(self, 'ext'):
                 self.ext = ext
 
             filetype = FILETYPES.get(self.ext, self.ext.upper().lstrip('.'))
@@ -1016,6 +1029,10 @@ class EditorWindow(object):
 
     def hilite_as(self, lang):
         def makecolor():
+            f = FILETYPES[lang]
+            self.ftype.set(f)
+            self.mode_bar.set_label('filetype', '('+f+')')
+
             self.ext = lang
             if self.color:
                 self.color.removecolors()
@@ -1230,7 +1247,7 @@ class EditorWindow(object):
 
     def saved_change_hook(self):
         short_ = self.short_title()
-        short = 'xidle: ' + short_
+        short = 'paPyrus: ' + short_
         long = self.long_title()
         if short and long:
             title = short + " - " + long + _py_version
