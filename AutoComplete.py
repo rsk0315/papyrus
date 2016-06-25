@@ -4,6 +4,7 @@ This extension can complete either attribute names of file names. It can pop
 a window with all available names, for the user to select from.
 """
 import os
+import re
 import sys
 import string
 
@@ -14,9 +15,13 @@ from idlelib.configHandler import idleConf
 FILENAME_CHARS = string.ascii_letters + string.digits + os.curdir + "._~#$:-"
 # This string includes all chars that may be in an identifier
 ID_CHARS = string.ascii_letters + string.digits + "_"
+# todo ---
+INCLUDE_CHARS = string.ascii_letters + string.digits + os.curdir + "</_"
+# ---
 
 # These constants represent the two different types of completions
 COMPLETE_ATTRIBUTES, COMPLETE_FILES = range(1, 2+1)
+COMPLETE_HEADERS = 3
 
 from idlelib import AutoCompleteWindow
 from idlelib.HyperParser import HyperParser
@@ -136,8 +141,25 @@ class AutoComplete:
         elif hp.is_in_code() and (not mode or mode==COMPLETE_ATTRIBUTES):
             self._remove_autocomplete_window()
             mode = COMPLETE_ATTRIBUTES
-            while i and curline[i-1] in ID_CHARS:
+            # while i and curline[i-1] in ID_CHARS:
+            # todo ---
+            if re.search(r'^#include[ \t]*<?', curline, flags=re.M):
+                if re.search(r'^#include[ \t]*$', curline, flags=re.M):
+                    self.text.insert('insert lineend', '<')
+                    curline = self.text.get('insert linestart', 'insert')
+                    i += 1
+                    j += 1
+
+                charset = INCLUDE_CHARS
+                mode = COMPLETE_HEADERS
+            else:
+                charset = ID_CHARS
+            while i and curline[i-1] in charset:
+            # ---
                 i -= 1
+                if mode == COMPLETE_HEADERS and curline[i] == '<':
+                    break
+
             comp_start = curline[i:j]
             if i and curline[i-1] == '.':
                 hp.set_index("insert-%dc" % (len(curline)-(i-1)))
@@ -182,9 +204,25 @@ class AutoComplete:
         else:
             if mode == COMPLETE_ATTRIBUTES:
                 if what == "":
-                    namespace = __main__.__dict__.copy()
-                    namespace.update(__main__.__builtins__.__dict__)
-                    bigl = eval("dir()", namespace)
+##                    namespace = __main__.__dict__.copy()
+##                    namespace.update(__main__.__builtins__.__dict__)
+##                    bigl = eval("dir()", namespace)
+                    # todo ---
+                    ext = self.editwin.ext
+                    if ext in ('.py', '.pyw'):
+                        namespace = __main__.__dict__.copy()
+                        namespace.update(__main__.__builtins__.__dict__)
+                        bigl = eval("dir()", namespace)
+                    if ext in ('.cpp', '.hpp', '.c', '.h'):
+                        idlelib_path = os.path.dirname(__file__)
+                        cpl_file = '{}/completions/cpp.cpl'.format(idlelib_path)
+                        with open(cpl_file) as fin:
+                            cppkws = [
+                                w for w in re.split(r'[\r\n]', fin.read()) if w
+                            ]
+
+                        bigl = cppkws
+                    # ---
                     bigl.sort()
                     if "__all__" in bigl:
                         smalll = sorted(eval("__all__", namespace))
@@ -212,6 +250,15 @@ class AutoComplete:
                     smalll = [s for s in bigl if s[:1] != '.']
                 except OSError:
                     return [], []
+
+            elif mode == COMPLETE_HEADERS:
+                if what == "":
+                    what = "<"
+
+                include_path = r'C:\Program Files\mingw-w64\x86_64-5.1.0-win32-seh-rt_v4-rev0\mingw64\x86_64-w64-mingw32\include\c++'
+                bigl = ['<'+h+'>' for h in os.listdir(include_path) if os.path.isfile(os.path.join(include_path, h))]
+                
+                smalll = None
 
             if not smalll:
                 smalll = bigl

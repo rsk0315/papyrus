@@ -559,7 +559,7 @@ class EditorWindow(object):
         )
 
         if self.io.filename:
-            self.ispythonsource(self.io.filename)
+            self.ext = self.ispythonsource(self.io.filename)
         else:
             self.ext = dict((v, k) for k, v in FILETYPES.items()).get(f, '.txt')
             self.ext = ALT_EXT.get(self.ext, self.ext)
@@ -630,6 +630,7 @@ class EditorWindow(object):
             if 'develop' in menudict:
                 _idle_path = os.path.dirname(__file__)
                 _my_dev_files = [
+                    ('AutoComplete', 0),
                     ('Bindings', 0),
                     ('ColorDelegator', 0),
                     ('EditorWindow', 0), 
@@ -637,6 +638,8 @@ class EditorWindow(object):
                 ]
                 fileopen = lambda fn: self.io.open(editFile=os.path.join(_idle_path, fn+'.py'))
 
+                menudict['develop'].add_command(
+                    label='AutoComplete', underline=0, command=lambda: fileopen('AutoComplete'))
                 menudict['develop'].add_command(
                     label='Bindings', underline=0, command=lambda: fileopen('Bindings'))
                 menudict['develop'].add_command(
@@ -651,6 +654,8 @@ class EditorWindow(object):
                     label='cpp.highlight', underline=4, command=lambda: fileopen('languages\\cpp'))
                 menudict['develop'].add_command(
                     label='cpp.template', underline=4, command=lambda: self.io.open(editFile=os.path.join(_idle_path, 'templates', 'cpp.tpl')))
+                menudict['develop'].add_command(
+                    label='cpp.completion', underline=5, command=lambda: self.io.open(editFile=os.path.join(_idle_path, 'completions', 'cpp.cpl')))
 
 ##                for fn, ul in _my_dev_files:
 ##                    print fn, ul
@@ -672,7 +677,7 @@ class EditorWindow(object):
         self.base_helpmenu_length = self.menudict['help'].index(END)
         self.reset_help_menu_entries()
 
-    def insert_template(self, event):
+    def insert_template(self, event=None):
         if not hasattr(self, 'ext'):
             return 1
 
@@ -689,7 +694,7 @@ class EditorWindow(object):
 
         self.text.insert('1.0', template_text)
 
-    def compile_code(self, event):
+    def compile_code(self, event=None):
         if not hasattr(self.io, 'filename') or self.io.filename is None:
             return 1
 
@@ -1003,8 +1008,11 @@ class EditorWindow(object):
         base, ext = os.path.splitext(os.path.basename(filename))
 
         if ext or (hasattr(self, 'ext') and self.ext):
-            if ext and not hasattr(self, 'ext'):
+            if not hasattr(self, 'ext') or 1:
                 self.ext = ext
+
+            if self.ext == None:
+                return ''  # todo
 
             filetype = FILETYPES.get(self.ext, self.ext.upper().lstrip('.'))
             if self.ext in ('.tpl',):
@@ -1032,8 +1040,9 @@ class EditorWindow(object):
             f = FILETYPES[lang]
             self.ftype.set(f)
             self.mode_bar.set_label('filetype', '('+f+')')
-
             self.ext = lang
+            self.set_filetype()
+
             if self.color:
                 self.color.removecolors()
                 self.per.removefilter(self.color)
@@ -1043,7 +1052,6 @@ class EditorWindow(object):
             self.per.insertfilter(self.color)
             self.per.insertfilter(self.undo)
 
-            self.set_filetype()
         return makecolor
 
     def close_hook(self):
@@ -1065,7 +1073,11 @@ class EditorWindow(object):
     def _addcolorizer(self):
         if self.color:
             return
-        self.ext = self.ispythonsource(self.io.filename)
+        # todo ---
+        if not hasattr(self, 'ext'):
+            self.ext = self.ispythonsource(self.io.filename)
+##        self.ext = self.ispythonsource(self.io.filename)
+        # ---
         if self.ext:
             self.color = self.ColorDelegator(self.ext)
         else:

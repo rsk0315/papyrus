@@ -267,6 +267,10 @@ class IOBinding:
 
         self.text.delete("1.0", "end")
         # xxx ? self.set_filename(None)
+        # todo ---
+        self.editwin.ext = None  # reset
+        self.editwin.ext = self.editwin.ispythonsource(filename)
+        # ---
         self.set_filename(filename)
         self.text.insert("1.0", chars)
         self.reset_undo()
