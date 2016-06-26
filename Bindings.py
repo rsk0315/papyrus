@@ -51,7 +51,9 @@ menudefs = [
    ('R_eplace...', '<<replace>>'),
    ('Go to _Line', '<<goto-line>>'),
    None,
-   ('_Insert Template', '<<insert-template>>'),
+##   ('_Insert Template', '<<insert-template>>'),
+##   ('C_ode Snippet', '<<code-snippet>>'),
+##   None,
   ]),
 ('format', [
    ('_Indent Region', '<<indent-region>>'),
@@ -65,8 +67,8 @@ menudefs = [
    ]),
  ('run', [
    ('Python Shell', '<<open-python-shell>>'),
-   None,
-   ('_Compile Code', '<<compile-code>>'),
+##   None,
+##   ('_Compile Code', '<<compile-code>>'),
    ]),
  ('shell', [
    ('_View Last Restart', '<<view-restart>>'),

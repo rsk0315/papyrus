@@ -66,6 +66,20 @@ encoding = encoding.lower()
 coding_re = re.compile(r'^[ \t\f]*#.*coding[:=][ \t]*([-\w.]+)')
 blank_re = re.compile(r'^[ \t\f]*(?:[#\r\n]|$)')
 
+FILETYPES = {
+    '.py': 'Python',
+    '.pyw': 'Python',
+    '.c': 'C/l Abbrev',
+    '.h': 'C/l Abbrev',
+    '.cpp': 'C++/l Abbrev',
+    '.rb': 'Ruby',
+    '.rbw': 'Ruby',
+    '.html': 'HTML',
+    '.ws': 'Whitespace',
+    '.bf': 'Brainf*ck',
+    '.txt': 'Text',
+}  # TODO
+
 class EncodingMessage(SimpleDialog):
     "Inform user that an encoding declaration is needed."
     def __init__(self, master, enc):
@@ -270,6 +284,11 @@ class IOBinding:
         # todo ---
         self.editwin.ext = None  # reset
         self.editwin.ext = self.editwin.ispythonsource(filename)
+        try:
+            self.editwin.ftype.set(FILETYPES[self.editwin.ext])
+            self.editwin.set_filetype()
+        except:
+            pass
         # ---
         self.set_filename(filename)
         self.text.insert("1.0", chars)

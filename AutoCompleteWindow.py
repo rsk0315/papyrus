@@ -3,7 +3,7 @@ An auto-completion window for IDLE, used by the AutoComplete extension
 """
 from Tkinter import *
 from idlelib.MultiCall import MC_SHIFT
-from idlelib.AutoComplete import COMPLETE_FILES, COMPLETE_ATTRIBUTES
+from idlelib.AutoComplete import COMPLETE_FILES, COMPLETE_ATTRIBUTES, COMPLETE_HEADERS
 
 HIDE_VIRTUAL_EVENT_NAME = "<<autocompletewindow-hide>>"
 HIDE_SEQUENCES = ("<FocusOut>", "<ButtonPress>")
@@ -290,13 +290,15 @@ class AutoCompleteWindow:
             self._selection_changed()
             return "break"
 
-        elif keysym == "Return":
-            self.hide_window()
-            return
+##        elif keysym == "Return":
+##            self.hide_window()
+##            return
 
-        elif (self.mode == COMPLETE_ATTRIBUTES and keysym in
+        #elif (self.mode == COMPLETE_ATTRIBUTES and keysym in
+        elif (self.mode in (COMPLETE_ATTRIBUTES, COMPLETE_HEADERS) and keysym in
               ("period", "space", "parenleft", "parenright", "bracketleft",
-               "bracketright")) or \
+               #"bracketright")) or \
+               "bracketright", "Return")) or \
              (self.mode == COMPLETE_FILES and keysym in
               ("slash", "backslash", "quotedbl", "apostrophe")) \
              and not (state & ~MC_SHIFT):
@@ -305,8 +307,12 @@ class AutoCompleteWindow:
             # selected completion. Anyway, close the list.
             cursel = int(self.listbox.curselection()[0])
             if self.completions[cursel][:len(self.start)] == self.start \
-               and (self.mode == COMPLETE_ATTRIBUTES or self.start):
+               and (self.mode in (COMPLETE_ATTRIBUTES, COMPLETE_HEADERS) or self.start):
                 self._change_start(self.completions[cursel])
+            self.hide_window()
+            return
+
+        elif keysym == "Return":
             self.hide_window()
             return
 

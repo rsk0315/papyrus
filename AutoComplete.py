@@ -216,12 +216,11 @@ class AutoComplete:
                     if ext in ('.cpp', '.hpp', '.c', '.h'):
                         idlelib_path = os.path.dirname(__file__)
                         cpl_file = '{}/completions/cpp.cpl'.format(idlelib_path)
+                        bigl = []
                         with open(cpl_file) as fin:
-                            cppkws = [
+                            bigl = [
                                 w for w in re.split(r'[\r\n]', fin.read()) if w
                             ]
-
-                        bigl = cppkws
                     # ---
                     bigl.sort()
                     if "__all__" in bigl:

@@ -272,8 +272,9 @@ class EditorWindow(object):
         text.bind("<<del-word-right>>", self.del_word_right)
         text.bind("<<beginning-of-line>>", self.home_callback)
 
-        text.bind("<<insert-template>>", self.insert_template)
+##        text.bind("<<insert-template>>", self.insert_template)
         text.bind("<<compile-code>>", self.compile_code)
+##        text.bind('<<code-snippet>>', self.code_snippet)
 
         if flist:
             flist.inversedict[self] = key
@@ -677,22 +678,22 @@ class EditorWindow(object):
         self.base_helpmenu_length = self.menudict['help'].index(END)
         self.reset_help_menu_entries()
 
-    def insert_template(self, event=None):
-        if not hasattr(self, 'ext'):
-            return 1
-
-        template_text = ''
-
-        # TODO; create .def files and get path from them
-        idlelib_path = os.path.dirname(__file__)
-        template_file = '{}/templates/{}.tpl'.format(idlelib_path, self.ext[1:])
-        try:
-            with open(template_file, 'r') as fin:
-                template_text = fin.read()
-        except:
-            pass
-
-        self.text.insert('1.0', template_text)
+##    def insert_template(self, event=None):
+##        if not hasattr(self, 'ext'):
+##            return 1
+##
+##        template_text = ''
+##
+##        # TODO; create .def files and get path from them
+##        idlelib_path = os.path.dirname(__file__)
+##        template_file = '{}/templates/{}.tpl'.format(idlelib_path, self.ext[1:])
+##        try:
+##            with open(template_file, 'r') as fin:
+##                template_text = fin.read()
+##        except:
+##            pass
+##
+##        self.text.insert('1.0', template_text)
 
     def compile_code(self, event=None):
         if not hasattr(self.io, 'filename') or self.io.filename is None:
@@ -753,6 +754,36 @@ class EditorWindow(object):
         ce.pack(fill='both', expand=True)
         ce.insert('1.0', compile_message)
         ce.focus_set()
+
+
+##    def code_snippet(self, event=None):
+##        curline = self.text.get('insert linestart', 'insert')
+##        query = curline.strip()
+##        if re.search(r'[ \t]|^$', query):
+##            return
+##
+##        indent = re.search(r'[ \t]*', curline).group()
+##
+##        idlelib_path = os.path.dirname(__file__)
+##        snippet_files = os.listdir(os.path.join(idlelib_path, 'snippets'))
+##        if hasattr(self, 'ext'):
+##            ext = self.ext or ''
+##        else:
+##            ext = ''
+##
+##        snippet = ''
+##        if query+ext in snippet_files:
+##            snippet = open(os.path.join(idlelib_path, 'snippets', query+ext)).read()
+##            if indent:
+##                snippet = ('\n'+indent).join(re.split(r'[\r\n]', snippet))
+##        elif any([s for s in snippet_files if s.startswith(query)]):
+##            # todo for auto-completion
+##            return
+##        else:
+##            return
+##
+##        self.text.delete('insert linestart', 'insert lineend')
+##        self.text.insert('insert linestart', indent+snippet)
 
 
     def postwindowsmenu(self):
@@ -1008,7 +1039,7 @@ class EditorWindow(object):
         base, ext = os.path.splitext(os.path.basename(filename))
 
         if ext or (hasattr(self, 'ext') and self.ext):
-            if not hasattr(self, 'ext') or 1:
+            if not hasattr(self, 'ext') or self.ext is None:
                 self.ext = ext
 
             if self.ext == None:
@@ -1020,8 +1051,8 @@ class EditorWindow(object):
                     filetype = FILETYPES['.'+base]
                     self.ext = '.'+base  # xxx
 
-            self.ftype.set(filetype)
-            self.mode_bar.set_label('filetype', '('+filetype+')')
+##            self.ftype.set(filetype)
+##            self.mode_bar.set_label('filetype', '('+filetype+')')
 
             return self.ext
         else:
@@ -1770,9 +1801,14 @@ class EditorWindow(object):
 
     def comment_region_event(self, event):
         head, tail, chars, lines = self.get_region()
-        if self.ext in ('.py', '.pyw', '.rb', '.rbw'):
+        try:
+            f = self.ftype.get()
+        except:
+            return
+
+        if f in ('Python', 'Ruby'):
             comchar = '##'
-        elif self.ext in ('.c', '.h', '.cpp', '.hpp'):
+        elif f in ('C/l Abbrev', 'C++/l Abbrev'):
             comchar = '//'
             ## xxx /*...*/ for C
         else:
@@ -1785,9 +1821,15 @@ class EditorWindow(object):
 
     def uncomment_region_event(self, event):
         head, tail, chars, lines = self.get_region()
-        if self.ext in ('.py', '.pyw', '.rb', '.rbw'):
+
+        try:
+            f = self.ftype.get()
+        except:
+            return
+
+        if f in ('Python', 'Ruby'):
             comchar = '##'
-        elif self.ext in ('.c', '.h', '.cpp', '.hpp'):
+        elif f in ('C/l Abbrev', 'C++/l Abbrev'):
             comchar = '//'
         else:
             return
