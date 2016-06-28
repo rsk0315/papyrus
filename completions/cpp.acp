@@ -12,6 +12,7 @@ const_cast
 constexpr
 continue
 default
+define
 delete
 do
 double
@@ -27,6 +28,9 @@ for
 friend
 goto
 if
+ifdef
+ifndef
+include
 inline
 int
 long
