@@ -283,7 +283,7 @@ class EditorWindow(object):
         text.bind("<<beginning-of-line>>", self.home_callback)
 
 ##        text.bind("<<insert-template>>", self.insert_template)
-        text.bind("<<compile-code>>", self.compile_code)
+##        text.bind("<<compile-code>>", self.compile_code)
 ##        text.bind('<<code-snippet>>', self.code_snippet)
 
         if flist:
@@ -611,7 +611,13 @@ class EditorWindow(object):
             if 'highlight' in [e[0] for e in self.menu_specs]:
                 self.ftype = StringVar()
                 self.ftype.set(
-                    'Python' and 'C++/l Abbrev' # to default to C++
+                    #'Python' and 'C++/l Abbrev' # to default to C++
+                    FILETYPES.get(
+                        '.'+idleConf.GetOption(
+                            'extensions', 'DefaultExtension', 'defext',
+                            type='str', default='cpp'
+                        ), 'C++/l Abbrev'
+                    )
                 )
         except AttributeError:
             pass
@@ -708,65 +714,65 @@ class EditorWindow(object):
 ##
 ##        self.text.insert('1.0', template_text)
 
-    def compile_code(self, event=None):
-        if not hasattr(self.io, 'filename') or self.io.filename is None:
-            return 1
-
-        if self.ext in ('.c', '.h'):
-            compiler = 'gcc'
-        elif self.ext in ('.cpp', '.hpp'):
-            compiler = 'g++'
-        else:
-            return 1
-
-        exec_name = os.path.splitext(self.io.filename)[0]+'.exe'
-        basename = os.path.basename(self.io.filename)
-        args = [compiler, '-O2', '-Wall', '-o', exec_name, self.io.filename]
-        if self.ext in ('.c', '.h'):
-            args += ['-lm']  # todo?
-
-        import subprocess
-        sp = subprocess.Popen(
-            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        )
-        compile_failed = sp.wait()
-        compile_message = sp.communicate()[1]  # stderr
-        compile_message = re.sub(
-            r'^{}:'.format(self.io.filename.replace('\\', r'\\')),
-            basename+':',
-            compile_message,
-            flags=re.M,
-        )  # XXX
-
-        if not compile_message:
-            tkMessageBox.showinfo(
-                parent=self.text,
-                title=compiler,
-                message='Compilation succeeded.',
-            )
-            return 0
-
-        import ScrolledText
-        sub_win = Toplevel(self.text)
-
-        if compile_failed:
-            title = 'Compilation failed'
-        else:
-            title = 'Compilation succeeded (with warning)'
-
-        sub_win.title(title)
-
-        ce = ScrolledText.ScrolledText(
-            sub_win, width=80, fg='white', bg='black', font='Consolas 10',
-        )
-        def close_(w, event=None):
-            w.grab_release()
-            w.withdraw()
-
-        ce.bind('<Escape>', lambda event: close_(sub_win, event))
-        ce.pack(fill='both', expand=True)
-        ce.insert('1.0', compile_message)
-        ce.focus_set()
+##    def compile_code(self, event=None):
+##        if not hasattr(self.io, 'filename') or self.io.filename is None:
+##            return 1
+##
+##        if self.ext in ('.c', '.h'):
+##            compiler = 'gcc'
+##        elif self.ext in ('.cpp', '.hpp'):
+##            compiler = 'g++'
+##        else:
+##            return 1
+##
+##        exec_name = os.path.splitext(self.io.filename)[0]+'.exe'
+##        basename = os.path.basename(self.io.filename)
+##        args = [compiler, '-O2', '-Wall', '-o', exec_name, self.io.filename]
+##        if self.ext in ('.c', '.h'):
+##            args += ['-lm']  # todo?
+##
+##        import subprocess
+##        sp = subprocess.Popen(
+##            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+##        )
+##        compile_failed = sp.wait()
+##        compile_message = sp.communicate()[1]  # stderr
+##        compile_message = re.sub(
+##            r'^{}:'.format(self.io.filename.replace('\\', r'\\')),
+##            basename+':',
+##            compile_message,
+##            flags=re.M,
+##        )  # XXX
+##
+##        if not compile_message:
+##            tkMessageBox.showinfo(
+##                parent=self.text,
+##                title=compiler,
+##                message='Compilation succeeded.',
+##            )
+##            return 0
+##
+##        import ScrolledText
+##        sub_win = Toplevel(self.text)
+##
+##        if compile_failed:
+##            title = 'Compilation failed'
+##        else:
+##            title = 'Compilation succeeded (with warning)'
+##
+##        sub_win.title(title)
+##
+##        ce = ScrolledText.ScrolledText(
+##            sub_win, width=80, fg='white', bg='black', font='Consolas 10',
+##        )
+##        def close_(w, event=None):
+##            w.grab_release()
+##            w.withdraw()
+##
+##        ce.bind('<Escape>', lambda event: close_(sub_win, event))
+##        ce.pack(fill='both', expand=True)
+##        ce.insert('1.0', compile_message)
+##        ce.focus_set()
 
 
 ##    def code_snippet(self, event=None):
@@ -1048,7 +1054,13 @@ class EditorWindow(object):
     def ispythonsource(self, filename):
         #if not filename or os.path.isdir(filename):
         if not filename:
-            return '.py' and '.cpp' # to default to C++
+            # return '.py' and '.cpp' # to default to C++
+            ext = '.'+idleConf.GetOption(
+                'extensions', 'DefaultExtension', 'defext', type='str',
+                default='cpp'
+            )
+##            ext='.cpp'
+            return ext
         base, ext = os.path.splitext(os.path.basename(filename))
 
         if ext or (hasattr(self, 'ext') and self.ext):

@@ -128,7 +128,11 @@ class PyShellEditorWindow(EditorWindow):
     def __init__(self, *args):
         self.breakpoints = []
         EditorWindow.__init__(self, *args)
-        self.ext = '.py' and '.cpp'
+##        self.ext = '.py' and '.cpp'
+        self.ext = '.'+idleConf.GetOption(
+            'extensions', 'DefaultExtension', 'defext', type='str',
+            default='cpp'
+        )
         self.text.bind("<<set-breakpoint-here>>", self.set_breakpoint_here)
         self.text.bind("<<clear-breakpoint-here>>", self.clear_breakpoint_here)
         self.text.bind("<<open-python-shell>>", self.flist.open_shell)

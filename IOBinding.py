@@ -296,6 +296,7 @@ class IOBinding:
         # todo ---
         self.editwin.ext = None  # reset
         self.editwin.ext = self.editwin.ispythonsource(filename)
+        print self.editwin.ext
         try:
             self.editwin.ftype.set(FILETYPES[self.editwin.ext])
             self.editwin.set_filetype()

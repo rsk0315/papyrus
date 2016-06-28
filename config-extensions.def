@@ -120,3 +120,7 @@ enable=1
 enable_shell=0
 [CompileCode_cfgBindings]
 compile-code=<Key-F7>
+
+[DefaultExtension]
+enable=0
+defext=cpp
