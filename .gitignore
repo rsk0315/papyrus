@@ -55,6 +55,8 @@ target/
 
 # Definition files:
 *.def
+*.acp
+*.tpl
 
 # =========================
 # Operating System Files
