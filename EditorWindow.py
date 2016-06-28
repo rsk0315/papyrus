@@ -511,7 +511,7 @@ class EditorWindow(object):
 
         self.xxx_bar.set_label(
             'xxx',
-            " @rsk0315_h4x",
+            " IDLE arranged by @rsk0315_h4x",
             side=LEFT, font='Consolas 10', bg='white'
         )
         self.xxx_bar.pack(side=BOTTOM, fill=X)
@@ -1045,11 +1045,18 @@ class EditorWindow(object):
             if self.ext == None:
                 return ''  # todo
 
-            filetype = FILETYPES.get(self.ext, self.ext.upper().lstrip('.'))
+##            filetype = FILETYPES.get(self.ext, self.ext.upper().lstrip('.'))
             if self.ext in ('.tpl',):
                 if ('.'+base) in FILETYPES:
                     filetype = FILETYPES['.'+base]
                     self.ext = '.'+base  # xxx
+
+##            try:
+##                f = self.ftype.get()
+##            except:
+##                f = ''
+##
+##            return dict((v, k) for k, v in FILETYPES.items()).get(f, '.txt')
 
 ##            self.ftype.set(filetype)
 ##            self.mode_bar.set_label('filetype', '('+filetype+')')

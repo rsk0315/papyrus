@@ -215,7 +215,7 @@ class AutoComplete:
                         bigl = eval("dir()", namespace)
                     if ext in ('.cpp', '.hpp', '.c', '.h'):
                         idlelib_path = os.path.dirname(__file__)
-                        cpl_file = '{}/completions/cpp.cpl'.format(idlelib_path)
+                        cpl_file = '{}/completions/cpp.acp'.format(idlelib_path)
                         bigl = []
                         with open(cpl_file) as fin:
                             bigl = [

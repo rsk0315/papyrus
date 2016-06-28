@@ -119,4 +119,4 @@ insert-template=<Alt-Key-i>
 enable=1
 enable_shell=0
 [CompileCode_cfgBindings]
-compile-code=<Control-Key-m>
+compile-code=<Key-F7>

@@ -8,7 +8,7 @@ import __main__
 class CodeSnippet(object):
     menudefs = [
         ('edit', [
-            ('Complete Code Snippet', '<<code-snippet>>'),
+            ('Insert Code Snippet', '<<code-snippet>>'),
         ])
     ]
 
@@ -30,7 +30,10 @@ class CodeSnippet(object):
 
         idlelib_path = os.path.dirname(__file__)
         snippet_path = os.path.join(idlelib_path, 'snippets')
-        snippet_files = os.listdir(snippet_path)
+        snippet_files = [
+            f for f in os.listdir(snippet_path)
+            if os.path.isfile(os.path.join(snippet_path, f))
+        ]
         if hasattr(self.editwin, 'ext'):
             ext = self.editwin.ext or ''
         else:
@@ -38,20 +41,24 @@ class CodeSnippet(object):
 
         snippet = ''
         if query+ext in snippet_files:
-            snippet = open(os.path.join(snippet_path, query+ext)).read()
-            if indent:
-                snippet = ('\n'+indent).join(re.split(r'[\r\n]', snippet))
-
-            if not snippet.endswith('\n'):
-                snippet += '\n'
-
-            snippet += indent
-                
-        elif any([s for s in snippet_files if s.startswith(query)]):
-            # todo for auto-completion
-            return
+            snippet_file = os.path.join(snippet_path, query+ext)
         else:
-            return
+            candidate = [s for s in snippet_files if s.startswith(query)]
+            # todo for auto-completion
+            if len(candidate) == 1:
+                snippet_file = os.path.join(snippet_path, candidate[0])
+            else:
+                return
+
+        snippet = open(snippet_file).read()
+        if indent:
+            snippet = ('\n'+indent).join(re.split(r'[\r\n]', snippet))
+
+        if not snippet.endswith('\n'):
+            snippet += '\n'
+
+        snippet += indent
+                
 
         self.text.delete('insert linestart', 'insert lineend')
         self.text.insert('insert linestart', indent+snippet)

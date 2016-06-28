@@ -327,6 +327,7 @@ class ColorDelegator(Delegator):
                 for tag in self.tagdefs.keys():
                     self.tag_remove(tag, mark, next)
                 chars = chars + line
+##                print `chars`
                 m = self.prog.search(chars)
                 p = 0
                 while m:
@@ -350,7 +351,7 @@ class ColorDelegator(Delegator):
                         m = self.prog.search(chars, m.end())
                 if "SYNC" in self.tag_names(next + "-1c"):
                     head = next
-                    chars = ""
+                    chars = ""  # to do if possible
                 else:
                     ok = False
                 if not ok:

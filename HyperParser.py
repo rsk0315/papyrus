@@ -17,6 +17,8 @@ class HyperParser:
         self.editwin = editwin
         self.text = text = editwin.text
 
+        self.ext = ext = editwin.ext
+
         parser = PyParse.Parser(editwin.indentwidth, editwin.tabwidth)
 
         def index2line(index):
