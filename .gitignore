@@ -53,6 +53,9 @@ docs/_build/
 # PyBuilder
 target/
 
+# Definition files:
+*.def
+
 # =========================
 # Operating System Files
 # =========================
