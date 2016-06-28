@@ -42,6 +42,16 @@ ALT_EXT = {
     '.h': '.c',
 }
 
+EXTENSIONS = {
+    'C++/l Abbrev': ("C++ sources and headers", "*.cpp *.hpp", "TEXT"),
+    'Python': ("Python files", "*.py *.pyw", "TEXT"),
+    'C/l Abbrev': ("C sources and headers", "*.c *.h", "TEXT"),
+    'HTML': ("HTML files", "*.html *.htm", "TEXT"),
+    'Ruby': ("Ruby files", "*.rb *.rbw", "TEXT"),
+    'Brainf*ck': ("Brain fxck files", "*.bf", "TEXT"),
+    'Text': ("Text files", "*.txt", "TEXT"),
+}
+
 _py_version = ' (%s)' % platform.python_version()
 
 def _sphinx_version():
@@ -559,6 +569,9 @@ class EditorWindow(object):
             '(' + f + ')'
         )
 
+        if f in EXTENSIONS:
+            self.io.update_filetype_list(EXTENSIONS[f])
+
         if self.io.filename:
             self.ext = self.ispythonsource(self.io.filename)
         else:
@@ -623,7 +636,7 @@ class EditorWindow(object):
                 menudict['highlight'].add_separator()
                 # --------
                 menudict['highlight'].add_radiobutton(label='Plain text', underline=8,
-                    variable=self.ftype, value='Fundamental', command=self.hilite_as('.txt'))
+                    variable=self.ftype, value='Text', command=self.hilite_as('.txt'))
         except (AttributeError, KeyError) as e:
             pass  # print e
 

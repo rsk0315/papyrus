@@ -170,6 +170,18 @@ class IOBinding:
         self.fileencoding = None
         self.__id_print = self.text.bind("<<print-window>>", self.print_window)
 
+        self.filetypes_default = self.filetypes = [
+            ("C++ sources and headers", "*.cpp *.hpp", "TEXT"),
+            ("Python files", "*.py *.pyw", "TEXT"),
+            ("C sources and headers", "*.c *.h", "TEXT"),
+            ("HTML files", "*.html *.htm", "TEXT"),
+            ("Ruby files", "*.rb *.rbw", "TEXT"),
+            ("Brain fxck files", "*.bf", "TEXT"),
+            ("Text files", "*.txt", "TEXT"),
+            ("All files", "*"),
+            ]
+
+
     def close(self):
         # Undo command bindings
         self.text.unbind("<<open-window-from-file>>", self.__id_open)
@@ -550,18 +562,25 @@ class IOBinding:
     opendialog = None
     savedialog = None
 
-    filetypes = [
-        ("C++ sources and headers", "*.cpp *.hpp", "TEXT"),
-        ("Python files", "*.py *.pyw", "TEXT"),
-        ("C sources and headers", "*.c *.h", "TEXT"),
-        ("HTML files", "*.html *.htm", "TEXT"),
-        ("Ruby files", "*.rb *.rbw", "TEXT"),
-        ("Brain fxck files", "*.bf", "TEXT"),
-        ("Text files", "*.txt", "TEXT"),
-        ("All files", "*"),
-        ]
+
+##    filetypes_default = filetypes = [
+##        ("C++ sources and headers", "*.cpp *.hpp", "TEXT"),
+##        ("Python files", "*.py *.pyw", "TEXT"),
+##        ("C sources and headers", "*.c *.h", "TEXT"),
+##        ("HTML files", "*.html *.htm", "TEXT"),
+##        ("Ruby files", "*.rb *.rbw", "TEXT"),
+##        ("Brain fxck files", "*.bf", "TEXT"),
+##        ("Text files", "*.txt", "TEXT"),
+##        ("All files", "*"),
+##        ]
 
     defaultextension = '.py' if sys.platform == 'darwin' else ''
+
+    def update_filetype_list(self, top):
+        if top in self.filetypes:
+            self.filetypes = self.filetypes_default[:]
+            self.filetypes.pop(self.filetypes.index(top))
+            self.filetypes.insert(0, top)
 
     def askopenfile(self):
         dir, base = self.defaultfilename("open")
@@ -569,6 +588,8 @@ class IOBinding:
             self.opendialog = tkFileDialog.Open(parent=self.text,
                                                 filetypes=self.filetypes)
         filename = self.opendialog.show(initialdir=dir, initialfile=base)
+        self.opendialog = None
+
         if isinstance(filename, unicode):
             filename = filename.encode(filesystemencoding)
         return filename
@@ -592,7 +613,9 @@ class IOBinding:
                     parent=self.text,
                     filetypes=self.filetypes,
                     defaultextension=self.defaultextension)
+
         filename = self.savedialog.show(initialdir=dir, initialfile=base)
+        self.savedialog = None
         if isinstance(filename, unicode):
             filename = filename.encode(filesystemencoding)
         return filename
