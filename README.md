@@ -1,7 +1,7 @@
 # papyrus
 Enhanced IDLE (IDE for Python)
 
-## Requirments
+## Requirements
 - `Python 2.7` (Not compatible with 3.x yet)
 - [`regex`](https://pypi.python.org/pypi/regex)
 
