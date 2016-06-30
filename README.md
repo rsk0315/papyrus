@@ -1,4 +1,4 @@
-# xidle
+# papyrus
 Enhanced IDLE (IDE for Python)
 
 ## Requirments
@@ -9,35 +9,44 @@ Enhanced IDLE (IDE for Python)
 Back up `idlelib` directory just in case
   (found in `/usr/lib64/python2.7/` or `C:\Python27\Lib`)
 
-Replace `idlelib/*.*` by `xidle/*.*`
+Replace `idlelib/*.*` by `papyrus-master/*.*`
 
-Copy `xidle/*/` to `idlelib/`
+Copy `papyrus-master/*/` to `idlelib/`
+
+Download and install `regex` module
+
+```
+$ pip install regex
+```
 
 
 ## What differs from original IDLE
 - Enhanced syntax highlight
   * colorize special characters in string and numeric literals
   * compatible with C, C++, Python, and Brainf*ck
-  `Menu bar > Highlight > ${each of languages}`
+  `Menu bar > Highlight > (FavoriteLanguage)`
   * Github-like theme
   `Menu bar > Options > Configure IDLE > Highlighting Theme > _Github`
 
 - Show line number
   `Menu bar > Options > Line Number`
-  (but not good enough)
+  (but not good enough, especially in UNIX)
+
+## Naming
+- 'papyrys' suggests paper, or editor
+- 'papyrus' contains substring 'PY', since written in `Python`
 
 
 ## Trouble shooting
 - highlighted improperly
-  * Try to recolorize from `Menu bar > Highlight > ${certain language}`
+  * Recolorize from `Menu bar > Highlight > (FavoriteLanguage)`
 
 - displayed font improperly (like proportional fonts)
-  * Try to relaunch
-  * Try to change font from `Menu bar > Options > Configure IDLE > Fonts/Tabs > Font Face`
+  * Relaunch
+  * Change font from `Menu bar > Options > Configure IDLE > Fonts/Tabs > Font Face`
 
 ## To do
 - Correct line number on UNIX
-- Enhance auto completion for C and C++
 - Retouch parenmatch for C and C++
 - Make compatible with other languages
 
