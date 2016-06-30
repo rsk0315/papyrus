@@ -34,7 +34,7 @@ $ pip install regex
   (but not good enough, especially in UNIX)
 
 ## Naming
-- 'papyrys' suggests paper, or editor
+- 'papyrus' suggests paper, or editor
 - 'papyrus' contains substring 'PY', since written in `Python`
 
 
