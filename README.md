@@ -21,10 +21,11 @@ $ pip install regex
 
 
 ## What differs from original IDLE
-- Enhanced syntax highlight
+- Enhanced syntax highlight  
+  `Menu bar > Highlight > (FavoriteLanguage)`  
+
   * colorize special characters in string and numeric literals
-  * compatible with C, C++, Python, and Brainf*ck
-  `Menu bar > Highlight > (FavoriteLanguage)`
+  * compatible with C, C++, Python, Markdown, and Brainf*ck
   * Github-like theme
   `Menu bar > Options > Configure IDLE > Highlighting Theme > _Github`
 
