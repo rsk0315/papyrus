@@ -38,6 +38,7 @@ append_tags = {
     'PREPROCESSOR': {_f: RED, _b: WHITE},
     'SHARP': {_f:BLACK, _b:WHITE},
     'PUNC': {_f:BLACK, _b:WHITE},
+    'LINK': {_f:BLACK, _b:WHITE, 'font':(font, 10, 'underline')},
 
     'RE_SGL': {_f: SKY, _b: WHITE},
     'RE_REPEAT': {_f: RED, _b: WHITE},

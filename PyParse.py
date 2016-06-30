@@ -479,7 +479,9 @@ class Parser:
                 extra = 0
                 # ---
                 lineend = str.find('\n', m.end())
-                if str.find(':', m.end(), lineend) > -1:
+                #if str.find(':', m.end(), lineend) > -1:
+                line = str[m.end():lineend]
+                if re.search(r':(?=$)', line, re.M):
                     extra += self.indentwidth
                 # ---
                 break

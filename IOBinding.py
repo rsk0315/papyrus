@@ -176,6 +176,7 @@ class IOBinding:
             ("C sources and headers", "*.c *.h", "TEXT"),
             ("HTML files", "*.html *.htm", "TEXT"),
             ("Ruby files", "*.rb *.rbw", "TEXT"),
+            ('Markdown files', '*.md', 'TEXT'),
             ("Brain fxck files", "*.bf", "TEXT"),
             ("Text files", "*.txt", "TEXT"),
             ("All files", "*"),
@@ -296,7 +297,7 @@ class IOBinding:
         # todo ---
         self.editwin.ext = None  # reset
         self.editwin.ext = self.editwin.ispythonsource(filename)
-        print self.editwin.ext
+##        print self.editwin.ext
         try:
             self.editwin.ftype.set(FILETYPES[self.editwin.ext])
             self.editwin.set_filetype()

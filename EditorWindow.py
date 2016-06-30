@@ -30,6 +30,7 @@ FILETYPES = {
     '.cpp': 'C++/l Abbrev',
     '.rb': 'Ruby',
     '.rbw': 'Ruby',
+    '.md': 'Markdown',
     '.html': 'HTML',
     '.ws': 'Whitespace',
     '.bf': 'Brainf*ck',
@@ -47,6 +48,7 @@ EXTENSIONS = {
     'Python': ("Python files", "*.py *.pyw", "TEXT"),
     'C/l Abbrev': ("C sources and headers", "*.c *.h", "TEXT"),
     'HTML': ("HTML files", "*.html *.htm", "TEXT"),
+    'Markdown': ('Markdown files', '*.md', 'TEXT'),
     'Ruby': ("Ruby files", "*.rb *.rbw", "TEXT"),
     'Brainf*ck': ("Brain fxck files", "*.bf", "TEXT"),
     'Text': ("Text files", "*.txt", "TEXT"),
@@ -630,6 +632,8 @@ class EditorWindow(object):
                     variable=self.ftype, value='C/l Abbrev', command=self.hilite_as('.c'))
                 menudict['highlight'].add_radiobutton(label='C++', underline=1,
                     variable=self.ftype, value='C++/l Abbrev', command=self.hilite_as('.cpp'))
+                menudict['highlight'].add_radiobutton(label='Markdown', underline=4,
+                    variable=self.ftype, value='Markdown', command=self.hilite_as('.md'))
                 menudict['highlight'].add_radiobutton(label='HTML', underline=0,
                     variable=self.ftype, value='HTML', command=self.hilite_as('.html'))
                 menudict['highlight'].add_radiobutton(label='Ruby', underline=0,
