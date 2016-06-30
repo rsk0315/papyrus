@@ -66,7 +66,7 @@ _match_stringre = re.compile(r"""
 
 _itemre = re.compile(r"""
     [ \t]*
-    [^\s#\\]    # if we match, m.end()-1 is the interesting char
+    [^\s#\\/]    # if we match, m.end()-1 is the interesting char
 """, re.VERBOSE).match
 
 # Match start of stmts that should be followed by a dedent.
@@ -477,6 +477,11 @@ class Parser:
             if m:
                 j = m.end() - 1     # index of first interesting char
                 extra = 0
+                # ---
+                lineend = str.find('\n', m.end())
+                if str.find(':', m.end(), lineend) > -1:
+                    extra += self.indentwidth
+                # ---
                 break
             else:
                 # this line is junk; advance to next line
@@ -488,6 +493,7 @@ class Parser:
             while str[j] in " \t":
                 j = j+1
             extra = self.indentwidth
+
         return len(str[i:j].expandtabs(self.tabwidth)) + extra
 
     # Return number of physical lines in last stmt (whether or not
