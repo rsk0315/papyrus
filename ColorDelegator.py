@@ -7,6 +7,7 @@ from idlelib.configHandler import idleConf
 
 try:
     import regex
+    import _regex_core
 except ImportError:
     import re as regex
 
@@ -61,6 +62,7 @@ def unify(*patterns):
         try:
             prog = regex.compile(pattern)
         except Exception as e:
+            print e
             continue
 
         if prog.search(''):
@@ -328,7 +330,11 @@ class ColorDelegator(Delegator):
                     self.tag_remove(tag, mark, next)
                 chars = chars + line
 ##                print `chars`
-                m = self.prog.search(chars)
+                try:
+                    m = self.prog.search(chars)
+                except _regex_core.error as e:
+                    print e
+                    return  # todo
                 p = 0
                 while m:
                     for key, value in m.groupdict().items():
@@ -348,7 +354,13 @@ class ColorDelegator(Delegator):
                         if p == m.start():
                             m = None
                     else:
-                        m = self.prog.search(chars, m.end())
+                        try:
+                            m = self.prog.search(chars, m.end())
+                        except _regex_core.error as e:
+                            # avoid too much backtracking
+                            # which may occur disaster
+                            print e
+                            return
                 if "SYNC" in self.tag_names(next + "-1c"):
                     head = next
                     chars = ""  # to do if possible

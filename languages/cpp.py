@@ -79,17 +79,17 @@ definition = [
     (
         r'(?<!'
             r'(?:'
-                r'\b(?:throw|return|case|static|const|volatile|else|for|while|ifn?def)\b'
+                r'\b(?:throw|return|case|static|const|volatile|else|for|while|ifn?def|inline)\b'
             r'|'r'^#define{t}{w}\b'
             r'|'r'\btypedef\b(?:{t}?{w}{t}?(?:<|>?::){t}?)*'
-            r')'
+             r')'
             r'{t}?'
         r')'
 
         r'(?<='
             r'(?:'
-                r'(?<=(?:^|[#;{{]|>?::){s}*)'               # ...;
-                r'{w}(?:{t}+{w})*(?:{s}(?#|[*&]))+'             # int foo;
+                r'(?<=(?:^|[#;{{(]|>?::){s}*)'              # ...;
+                r'{w}(?:{t}+{w})*(?:{s}(?#|[*&]))+'         # int foo;
             r'|'r'(?<=\}}{s}*)'                             # struct {...} foo;
             r'|'r'(?<=(?:^|[#;{{])[^;<()=]*<[^();-]*)>'      
                 r'(?:::{t}*{w}{s}+)'                        # map<T,T>::iterator foo;
@@ -106,7 +106,8 @@ definition = [
                     # int foo[1]={1}, bar;
                     r'(?:={t}*\{{[^;]*\}})?'                # array
                     # vector<int> foo(1), bar;
-                r'|'r'\((?:\)(?!{s}*\w)|[^):;])*\)'         # constructor
+##                r'|'r'\((?:\)(?!{s}*\w)|[^):;])*\)'         # constructor
+                r'|'r'(?P<C>\((?:[^();:]+|(?&C))*\))'
                 r'|'r'={s}*'
                     r'(?:'
                         # int foo=sqrt(2), bar;
@@ -116,11 +117,11 @@ definition = [
                         # string foo="FOO", bar;
                     r'|'r'@?"[^"\\]*(?:\\.[^"\\]*)*"'       # string
                         # int foo=1+sqrt(2)+a, bar;
-                    r'|'r'[\w()+\-*/%&|^~<>!?:.,{{}}]+'     # xxx other
+                    r'|'r'[\w()+\-*/%&|^~!?:.,{{}}]+'       # xxx other
                     r')'
                 r')?'
                 # int foo, bar::baz, qux;
-                r'{s}*(?:,|>?::(?#|<))(?:{t}(?#|\*))*'
+                r'{s}*(?:(?<=\)?),|>?::(?#|<))(?:{t}(?#|\*))*'
             r')*'
         r')'
         r'{w}'
@@ -141,16 +142,17 @@ definition = [
     (
         r'(?<!'
             r'(?:'
-                r'\b(?:throw|return|case|static|const|volatile|else|for|while|ifn?def)\b'
+                r'\b(?:throw|case|static|const|volatile|else|for|while|ifn?def|inline)\b'
             r'|'r'^#define{t}{w}\b'
             r'|'r'\btypedef\b(?:{t}?{w}{t}?(?:<|>?::){t}?)*'
+            r'|'r'\breturn[ \t*]+(?:{w}{t}?\*[ \t*]*)?'
             r')'
             r'{t}?'
         r')'
 
         r'(?<='
             r'(?:'
-                r'(?<=(?:^|[#;{{]|>?::){s}*)'               # ...;
+                r'(?<=(?:^|[#;{{(]|>?::){s}*)'              # ...;
                 r'{w}(?:{t}+{w})*'                          # int *foo;
             r'|'r'(?<=\}})'                                 # struct {...} *foo;
             r'|'r'(?<=(?:^|[#;{{])[^;<()=]*<[^();-]*)>'      
@@ -172,7 +174,7 @@ definition = [
                         # string foo="FOO", bar;
                         r'@?"[^"\\]*(?:\\.[^"\\]*)*"'       # string
                         # int foo=1+sqrt(2)+a, bar;
-                    r'|'r'[\w()+\-*/%&|^~<>!?:.,{{}}]+'     # xxx other
+                    r'|'r'[\w()+\-*/%&|^~!?:.,{{}}]+'       # xxx other
                     r')'
                 r')?'
                 # int foo, bar::baz, qux;
@@ -331,3 +333,26 @@ def read_twice(self, head, key, value, chars, m):
                                     head + '+{}c'.format(ac),
                                     head + '+{}c'.format(bc))
             mc = cprog.search(chars, mc.end())
+
+    elif key == 'DEFINITION':
+        i = 0
+        getch = lambda k: self.get(
+            head+'{:+}c'.format(k), head+'{:+}c'.format(k+1))
+        char = getch(m.end()-i-1)
+        while i <= 160:  # about 2 lines; avoid infinite loop (heuristics)
+##            print `char`
+            if char in ';)':
+                return
+            elif char in '(':
+                line = self.get(
+                        head+'{:+}c'.format(m.end()-i-80),
+                        head+'{:+}c'.format(m.end()-i-1))
+                if regex.search(r'\b(?:for|while)\s*$', line, flags=regex.M):
+                    return
+
+                self.tag_remove('DEFINITION',
+                                head + '+{}c'.format(m.start()),
+                                head + '+{}c'.format(m.end()))
+                return
+            i += 1
+            char = getch(m.end()-i-1)
