@@ -118,9 +118,16 @@ insert-template=<Alt-Key-i>
 [CompileCode]
 enable=1
 enable_shell=0
+compile_c=gcc -Wall -lm -O2 -o {0}.exe {0}.c
+compile_cpp=g++ -Wall -O2 -o {0}.exe {0}.cpp
 [CompileCode_cfgBindings]
 compile-code=<Key-F7>
 
 [DefaultExtension]
 enable=0
 defext=cpp
+
+[RunCode]
+enable=1
+[RunCode_cfgBindings]
+run-code=<Key-F8>

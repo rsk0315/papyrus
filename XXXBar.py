@@ -1,12 +1,60 @@
 from Tkinter import *
+import re
+import string
+
+UPDATEINTERVAL = 50 # ms
 
 class XXXBar(Frame):
 
-    def __init__(self, master=None, **kw):
+    def __init__(self, master=None, editwin=None, **kw):
         if master is None:
             master = Tk()
         Frame.__init__(self, master, **kw)
         self.labels = {}
+
+        if editwin is None:
+            return
+
+        self.editwin = editwin
+        self.text = self.editwin.text
+##        self.text.after(UPDATEINTERVAL, self.timer_event)
+
+##        al = string.ascii_lowercase
+##        #for c in al:
+##        bind_ctrl = lambda k: self.text.bind(
+##            '<Control-Key-{}>'.format(k),
+##            lambda e: self.write_key(e, 'C-{}'.format(k))
+##        )
+##        bind_alt = lambda k: self.text.bind(
+##            '<Alt-Key-{}>'.format(k),
+##            lambda e: self.write_key(e, 'M-{}'.format(k))
+##        )
+##        bind_raw = lambda k: self.text.bind(
+##            '<Key-{}>'.format(k),
+##            lambda e: self.write_key(e, None)
+##        )
+##        for c in al:
+##            bind_ctrl(c)
+##            bind_alt(c)
+##            bind_raw(c)
+
+##        for i in range(len(al)):
+##            c = str(al[i])
+##            self.text.bind(
+##                '<Control-Key-{}>'.format(c),
+##                lambda e: self.write_key(e, 'C-{}'.format(c))
+##            )
+##            self.text.bind(
+##                '<Alt-Key-{}>'.format(c),
+##                lambda e: self.write_key(e, 'M-{}'.format(c))
+##            )
+##            self.text.bind(
+##                '<Key-{}>'.format(c),
+##                lambda e: self.write_key(e, None)
+##            )
+
+        self.t = StringVar()
+        self.set_label('xxx', text=' Lorem ipsum dolor sit amet', font='Consolas 10')
 
     def set_label(self, name, text='', side=LEFT, width=0, **kw):
         if name not in self.labels:
@@ -19,6 +67,27 @@ class XXXBar(Frame):
             label.config(width=width)
         label.config(text=text, **kw)
 
+##    def timer_event(self):
+##        if self.labels:
+##            self.update_xxxbar()
+##        self.text.after(UPDATEINTERVAL, self.timer_event)
+
+    def write_key(self, event=None, key=''):
+        if key is None:
+            self.t.set('')
+        elif len(self.t.get()) > 20:
+            self.t.set(' '+key)
+        else:
+            self.t.set(self.t.get()+' '+key)
+
+        self.labels['xxx'].config(text=self.t.get())
+
+##    def update_xxxbar(self, event=None):
+####        t = self.text.get('insert linestart', 'insert')
+####        self.labels['xxx'].config(text=' '+re.search(r'\w*$', t).group())
+##        self.labels['xxx'].config(text=repr(event))
+
+    
 def _xxx_bar(parent):
     root = Tk()
     width, height, x, y = list(map(int, re.split('[x+]', parent.geometry())))

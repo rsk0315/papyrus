@@ -25,9 +25,9 @@ TK_TABWIDTH_DEFAULT = 8
 FILETYPES = {
     '.py': 'Python',
     '.pyw': 'Python',
-    '.c': 'C/l Abbrev',
-    '.h': 'C/l Abbrev',
-    '.cpp': 'C++/l Abbrev',
+    '.c': 'C/l',
+    '.h': 'C/l',
+    '.cpp': 'C++/l',
     '.rb': 'Ruby',
     '.rbw': 'Ruby',
     '.md': 'Markdown',
@@ -44,9 +44,9 @@ ALT_EXT = {
 }
 
 EXTENSIONS = {
-    'C++/l Abbrev': ("C++ sources and headers", "*.cpp *.hpp", "TEXT"),
+    'C++/l': ("C++ sources and headers", "*.cpp *.hpp", "TEXT"),
     'Python': ("Python files", "*.py *.pyw", "TEXT"),
-    'C/l Abbrev': ("C sources and headers", "*.c *.h", "TEXT"),
+    'C/l': ("C sources and headers", "*.c *.h", "TEXT"),
     'HTML': ("HTML files", "*.html *.htm", "TEXT"),
     'Markdown': ('Markdown files', '*.md', 'TEXT'),
     'Ruby': ("Ruby files", "*.rb *.rbw", "TEXT"),
@@ -518,14 +518,14 @@ class EditorWindow(object):
         self.text.after_idle(self.set_line_and_column)
 
     def set_xxx_bar(self):
-        self.xxx_bar = self.XXXBar(self.top, bg='#ffffff')
+        self.xxx_bar = self.XXXBar(self.top, self, bg='#ffffff')
         sep = Frame(self.top, height=1, borderwidth=1, background='grey75')
 
-        self.xxx_bar.set_label(
-            'xxx',
-            " IDLE arranged by @rsk0315_h4x",
-            side=LEFT, font='Consolas 10', bg='white'
-        )
+##        self.xxx_bar.set_label(
+##            'xxx',
+##            " IDLE arranged by @rsk0315_h4x",
+##            side=LEFT, font='Consolas 10', bg='white'
+##        )
         self.xxx_bar.pack(side=BOTTOM, fill=X)
         sep.pack(side=BOTTOM, fill=X)
 
@@ -613,12 +613,12 @@ class EditorWindow(object):
             if 'highlight' in [e[0] for e in self.menu_specs]:
                 self.ftype = StringVar()
                 self.ftype.set(
-                    #'Python' and 'C++/l Abbrev' # to default to C++
+                    #'Python' and 'C++/l' # to default to C++
                     FILETYPES.get(
                         '.'+idleConf.GetOption(
                             'extensions', 'DefaultExtension', 'defext',
                             type='str', default='cpp'
-                        ), 'C++/l Abbrev'
+                        ), 'C++/l'
                     )
                 )
         except AttributeError:
@@ -629,9 +629,9 @@ class EditorWindow(object):
                 menudict['highlight'].add_radiobutton(label='Python', underline=0,
                     variable=self.ftype, value='Python', command=self.hilite_as('.py'))
                 menudict['highlight'].add_radiobutton(label='C', underline=0,
-                    variable=self.ftype, value='C/l Abbrev', command=self.hilite_as('.c'))
+                    variable=self.ftype, value='C/l', command=self.hilite_as('.c'))
                 menudict['highlight'].add_radiobutton(label='C++', underline=1,
-                    variable=self.ftype, value='C++/l Abbrev', command=self.hilite_as('.cpp'))
+                    variable=self.ftype, value='C++/l', command=self.hilite_as('.cpp'))
                 menudict['highlight'].add_radiobutton(label='Markdown', underline=4,
                     variable=self.ftype, value='Markdown', command=self.hilite_as('.md'))
                 menudict['highlight'].add_radiobutton(label='HTML', underline=0,
@@ -1846,7 +1846,7 @@ class EditorWindow(object):
 
         if f in ('Python', 'Ruby'):
             comchar = '##'
-        elif f in ('C/l Abbrev', 'C++/l Abbrev'):
+        elif f in ('C/l', 'C++/l'):
             comchar = '//'
             ## xxx /*...*/ for C
         else:
@@ -1867,7 +1867,7 @@ class EditorWindow(object):
 
         if f in ('Python', 'Ruby'):
             comchar = '##'
-        elif f in ('C/l Abbrev', 'C++/l Abbrev'):
+        elif f in ('C/l', 'C++/l'):
             comchar = '//'
         else:
             return

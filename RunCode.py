@@ -59,7 +59,7 @@ class RunCode(object):
 ##        self.stdin.unbind('<Control-Key-Return>')
         self.stdin.bind('<Control-Key-Return>', self.execute)
 
-        frame = Frame(self.subwin)
+        frame = Frame(self.subwin, width=40, height=3)
         self.exec_button = Button(
             frame, text='Execute', command=self.execute,
         )
@@ -67,15 +67,17 @@ class RunCode(object):
         labelframe = LabelFrame(frame, text='Time Limit')
         unit = Label(labelframe, text='sec')
         unit.pack(side='right')
+        tl = StringVar(value=2)
         self.time_limit = Spinbox(
-            labelframe, from_=1, to=60, increment=1, width=8, 
+            labelframe, from_=1, to=60, increment=1, width=8, textvariable=tl,
         )
         self.time_limit.pack(anchor='w')
 
-        labelframe.pack(side='right', anchor='n')
-        space = Label(frame, text=' '*12)  # todo
-        space.pack(side='right', anchor='s')
-        self.exec_button.pack(side='right', anchor='s')
+        labelframe.pack(side='top', anchor='e')
+##        space = Label(frame, text=' '*12)  # todo
+##        space.pack(side='right', anchor='s')
+        self.exec_button.pack(side='bottom', anchor='s')
+
         frame.pack(side='top', fill='both')
 
         self.stdout = StdIO('Standard Output', self._close_window, self.subwin, **kwargs)

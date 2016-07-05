@@ -3,6 +3,7 @@ import subprocess
 import tkMessageBox
 from ScrolledText import ScrolledText
 from Tkinter import *
+from idlelib.configHandler import idleConf
 
 class CompileCode(object):
     menudefs = [
@@ -31,18 +32,21 @@ class CompileCode(object):
 
         if f in ('C/l',):
             compiler = 'gcc'
+            command = idleConf.GetOption('extensions', 'CompileCode', 'compile_c')
         elif f in ('C++/l',):
             compiler = 'g++'
+            command = idleConf.GetOption('extensions', 'CompileCode', 'compile_cpp')
         else:
             return
 
-        exe_name = os.path.splitext(filename)[0]+'.exe'
+        raw_name = os.path.splitext(filename)[0]
+        exe_name = raw_name+'.exe'
         basename = os.path.basename(filename)
-        args = [compiler, '-O2', '-Wall', '-o', exe_name, filename]
-        if compiler == 'gcc':
-            args += ['-lm']  # todo
+##        args = [compiler, '-O2', '-Wall', '-o', exe_name, filename]
+##        if compiler == 'gcc':
+##            args += ['-lm']  # todo
 
-        args = ' '.join(args)
+        args = command.format(raw_name)
 
         sp = subprocess.Popen(
             args, stdin=subprocess.PIPE,

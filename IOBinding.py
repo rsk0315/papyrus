@@ -69,9 +69,9 @@ blank_re = re.compile(r'^[ \t\f]*(?:[#\r\n]|$)')
 FILETYPES = {
     '.py': 'Python',
     '.pyw': 'Python',
-    '.c': 'C/l Abbrev',
-    '.h': 'C/l Abbrev',
-    '.cpp': 'C++/l Abbrev',
+    '.c': 'C/l',
+    '.h': 'C/l',
+    '.cpp': 'C++/l',
     '.rb': 'Ruby',
     '.rbw': 'Ruby',
     '.html': 'HTML',
