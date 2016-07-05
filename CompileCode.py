@@ -74,6 +74,7 @@ class CompileCode(object):
         ce = ScrolledText(
             sub_win, width=80, height=24,
             fg='white', bg='black', font='Consolas 10',
+            insertbackground='white',
         )
         def close_(w, event=None):
             w.grab_release()
