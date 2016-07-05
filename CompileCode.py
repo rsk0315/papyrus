@@ -29,9 +29,9 @@ class CompileCode(object):
         except:
             return
 
-        if f in ('C/l Abbrev',):
+        if f in ('C/l',):
             compiler = 'gcc'
-        elif f in ('C++/l Abbrev',):
+        elif f in ('C++/l',):
             compiler = 'g++'
         else:
             return
@@ -42,8 +42,11 @@ class CompileCode(object):
         if compiler == 'gcc':
             args += ['-lm']  # todo
 
+        args = ' '.join(args)
+
         sp = subprocess.Popen(
-            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            args, stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
         )
         compile_failed = sp.wait()
         compile_message = sp.communicate()[1]

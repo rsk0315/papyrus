@@ -43,6 +43,7 @@ class RunCode(object):
 ##        self.stdin.insert('1.0', string.rstrip())
 ##        self.stdin.delete('end-1c', 'end')
         self.stdin.config(state='normal')
+        self.stdin.focus_set()
 
     def _open_window(self, event=None):
         self.subwin = Toplevel(self.text)
@@ -116,7 +117,7 @@ class RunCode(object):
 
         def run_exe():
             p = subprocess.Popen(
-                [exec_name],
+                exec_name, shell=True,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -130,9 +131,13 @@ class RunCode(object):
             self.stderr.insert('1.0', stderr)
 
         d = threading.Thread(name='exe', target=run_exe)
+        self.stdin.focus_set()
         d.start()
+        self.stdin.focus_set()
         d.join(int(self.time_limit.get()))
+        self.stdin.focus_set()
         if d.isAlive():
             self.stderr.insert('1.0', 'Time Limit Exceeded')
+            self.stdin.focus_set()
 
         self.stdin.focus_set()
