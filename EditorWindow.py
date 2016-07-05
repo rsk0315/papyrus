@@ -680,6 +680,8 @@ class EditorWindow(object):
                     label='cpp.template', underline=4, command=lambda: self.io.open(editFile=os.path.join(_idle_path, 'templates', 'cpp.tpl')))
                 menudict['develop'].add_command(
                     label='cpp.completion', underline=5, command=lambda: self.io.open(editFile=os.path.join(_idle_path, 'completions', 'cpp.acp')))
+                menudict['develop'].add_command(
+                    label='configExtensions', underline=7, command=lambda: self.io.open(editFile=os.path.join(_idle_path, 'config-extensions.def')))
 
 ##                for fn, ul in _my_dev_files:
 ##                    print fn, ul
