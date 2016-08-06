@@ -1,6 +1,7 @@
 import os
 import subprocess
 import tkMessageBox
+import threading
 from ScrolledText import ScrolledText
 from Tkinter import *
 from idlelib.configHandler import idleConf
@@ -39,55 +40,78 @@ class CompileCode(object):
         else:
             return
 
+        def close_(w, event=None):
+            w.grab_release()
+            w.withdraw()
+
         raw_name = os.path.splitext(filename)[0]
         exe_name = raw_name+'.exe'
         basename = os.path.basename(filename)
-##        args = [compiler, '-O2', '-Wall', '-o', exe_name, filename]
-##        if compiler == 'gcc':
-##            args += ['-lm']  # todo
 
         args = command.format(raw_name)
 
-        sp = subprocess.Popen(
-            args, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
-        )
-        compile_failed = sp.wait()
-        compile_message = sp.communicate()[1]
-        compile_message = re.sub(
-            r'^{}:'.format(filename.replace('\\', r'\\')),
-            basename+':',
-            compile_message,
-            flags=re.M,
+        sub_win = Toplevel(self.text)
+        sub_win.title('In compilation')
+
+        ce = ScrolledText(
+            sub_win, width=80, height=24,
+            fg='#b7b7b7', bg='black', font='Consolas 10',
+            insertbackground='white',
         )
 
-        if not compile_message:
+        ce.bind('<Escape>', lambda event: close_(sub_win, event))
+        ce.pack(fill='both', expand=True)
+        ce.focus_set()
+        
+        def compile_():
+            sp = subprocess.Popen(
+                args, stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
+            )
+            self.compile_failed = compile_failed = sp.wait()
+            compile_message = sp.communicate()[1]
+            compile_message = re.sub(
+                r'^{}:'.format(filename.replace('\\', r'\\')),
+                basename+':',
+                compile_message,
+                flags=re.M,
+            )
+            self.compile_message = compile_message
+
+            if not compile_message:
+                return
+
+            if compile_failed:
+                title = 'Compilation failed'
+            else:
+                title = 'Compilation succeeded (with warning)'
+
+            sub_win.title(title)
+
+##            ce.insert('1.0', compile_message)
+##            ce.focus_set()
+
+        d = threading.Thread(name='comp', target=compile_)
+        d.start()
+        d.join(6)
+        if d.is_alive():
+            p = subprocess.Popen(
+                'taskkill /im {} /f /t'.format(compiler),
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                shell=True,
+            )
+            stdout, stderr = p.communicate()
+
+        if not self.compile_message:
+            close_(sub_win, None)
             tkMessageBox.showinfo(
                 parent=self.text,
                 title=compiler,
                 message='Compilation succeeded.',
             )
-            return
-
-        sub_win = Toplevel(self.text)
-
-        if compile_failed:
-            title = 'Compilation failed'
         else:
-            title = 'Compilation succeeded (with warning)'
+            ce.insert('end', self.compile_message)
 
-        sub_win.title(title)
-
-        ce = ScrolledText(
-            sub_win, width=80, height=24,
-            fg='white', bg='black', font='Consolas 10',
-            insertbackground='white',
-        )
-        def close_(w, event=None):
-            w.grab_release()
-            w.withdraw()
-
-        ce.bind('<Escape>', lambda event: close_(sub_win, event))
-        ce.pack(fill='both', expand=True)
-        ce.insert('1.0', compile_message)
         ce.focus_set()

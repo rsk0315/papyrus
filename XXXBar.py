@@ -53,8 +53,9 @@ class XXXBar(Frame):
 ##                lambda e: self.write_key(e, None)
 ##            )
 
-        self.t = StringVar()
-        self.set_label('xxx', text=' Lorem ipsum dolor sit amet', font='Consolas 10')
+##        self.t = StringVar()
+##        print master, editwin
+        self.set_label('xxx', text=' Lorem ipsum dolor sit amet', font='Consolas 10', bg='white')
 
     def set_label(self, name, text='', side=LEFT, width=0, **kw):
         if name not in self.labels:
@@ -72,15 +73,15 @@ class XXXBar(Frame):
 ##            self.update_xxxbar()
 ##        self.text.after(UPDATEINTERVAL, self.timer_event)
 
-    def write_key(self, event=None, key=''):
-        if key is None:
-            self.t.set('')
-        elif len(self.t.get()) > 20:
-            self.t.set(' '+key)
-        else:
-            self.t.set(self.t.get()+' '+key)
-
-        self.labels['xxx'].config(text=self.t.get())
+##    def write_key(self, event=None, key=''):
+##        if key is None:
+##            self.t.set('')
+##        elif len(self.t.get()) > 20:
+##            self.t.set(' '+key)
+##        else:
+##            self.t.set(self.t.get()+' '+key)
+##
+##        self.labels['xxx'].config(text=self.t.get())
 
 ##    def update_xxxbar(self, event=None):
 ####        t = self.text.get('insert linestart', 'insert')

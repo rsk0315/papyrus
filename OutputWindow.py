@@ -12,8 +12,8 @@ class OutputWindow(EditorWindow):
     This class has no input facilities.
     """
 
-    def __init__(self, *args):
-        EditorWindow.__init__(self, *args)
+    def __init__(self, *args, **kwargs):
+        EditorWindow.__init__(self, *args, **kwargs)
         self.text.bind("<<goto-file-line>>", self.goto_file_line)
 
     # Customize EditorWindow

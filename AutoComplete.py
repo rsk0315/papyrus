@@ -254,9 +254,19 @@ class AutoComplete:
                 if what == "":
                     what = "<"
 
-                include_path = r'C:\Program Files\mingw-w64\x86_64-5.1.0-win32-seh-rt_v4-rev0\mingw64\x86_64-w64-mingw32\include\c++'
-                bigl = ['<'+h+'>' for h in os.listdir(include_path) if os.path.isfile(os.path.join(include_path, h))]
-                
+                paths = idleConf.GetOption(
+                    "extensions", "AutoComplete",
+                    "include-path", type="str", default=0
+                ).split(';')
+                bigl = reduce(lambda x, y: x+y, [
+                    [
+                        '<'+h+'>' for h in os.listdir(path)
+                        if os.path.isfile(os.path.join(path, h))
+                    ]
+                    for path in paths if os.path.isdir(path)
+                ], [])
+                bigl = sorted(list(set(bigl)))
+
                 smalll = None
 
             if not smalll:

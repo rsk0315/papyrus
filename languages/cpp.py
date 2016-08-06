@@ -60,7 +60,7 @@ string = [
 
 number = [
     r'(?<!\w){0}'.format(i) for i in [
-        r'(?:\.\d+|\d+\.\d*)(?:[Ee][+-]?\d+)?',
+        r'(?:\.\d+|\d+\.\d*)(?:[Ee][+-]?\d+)?[Ff]?',
         r'\d+(?:[Ee][+-]?\d+)',  # todo
         r'(?:0[Qq][0-3]+|0[Bb][01]+)',  # todo
         r'(?:0[Xx][\dA-Fa-f]+|0[0-7]+|[1-9]\d*|0)[ULul]*',
@@ -79,7 +79,7 @@ definition = [
     (
         r'(?<!'
             r'(?:'
-                r'\b(?:throw|return|case|static|const|volatile|else|for|while|ifn?def|inline)\b'
+                r'\b(?:throw|return|case|static|const|volatile|else|for|while|ifn?def|inline|(?:un)?signed)\b'
             r'|'r'^#define{t}{w}\b'
             r'|'r'\btypedef\b(?:{t}?{w}{t}?(?:<|>?::){t}?)*'
              r')'
@@ -106,8 +106,8 @@ definition = [
                     # int foo[1]={1}, bar;
                     r'(?:={t}*\{{[^;]*\}})?'                # array
                     # vector<int> foo(1), bar;
-##                r'|'r'\((?:\)(?!{s}*\w)|[^):;])*\)'         # constructor
-                r'|'r'(?P<C>\((?:[^();:]+|(?&C))*\))'
+                r'|'r'\((?:\)(?!{s}*\w)|[^):;])*\)'         # constructor
+##                r'|'r'(?P<C>\((?:[^();:]+|(?&C))*\))'     # todo
                 r'|'r'={s}*'
                     r'(?:'
                         # int foo=sqrt(2), bar;
@@ -213,7 +213,7 @@ definition = [
     r'(?:'
         r'\+\+|\&\&|\|\||--'
     r'|'r'->\*?'
-    r'|'r'(?:[+\-*/%^&|<>!=]|<<|>>)=?'
+    r'|'r'(?:<<|>>|[+\-*/%^&|<>!=])=?'
     r'|'r'\b(?:new|delete)\b'
     r'|'r'\(\s*\)|\[\s*\]'
     r'|'r'[~,]'
@@ -231,11 +231,11 @@ definition = [
         )
     ),
 
-    # todo function which returns pointer
-    (
-        r'(?<={w}(?:{t}+{w})*{t}?\*+{t}?)'
-        r'{w}(?=\()'
-    ).format(w=r'(?:[_A-Za-z]\w*)', t=r'(?:[ \t]+)')
+##    # todo function which returns pointer
+##    (
+##        r'(?<={w}(?:{t}+{w})*{t}?\*+{t}?)'
+##        r'{w}(?=\()'
+##    ).format(w=r'(?:[_A-Za-z]\w*)', t=r'(?:[ \t]+)')
 
 ]
 

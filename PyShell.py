@@ -356,17 +356,25 @@ class ModifiedColorDelegator(ColorDelegator):
         WHITE = '#ffffff'
         BLACK = '#333333'
 
-        self.tagdefs.update({
-            "stdin": {'background':None,'foreground':None},
-##            "stdout": idleConf.GetHighlight(theme, "stdout"),
-##            "stderr": idleConf.GetHighlight(theme, "stderr"),
-            'stdout': {'background': WHITE, 'foreground': BLACK,
-                       'font': (font, 10, 'bold')},
-            'stderr': {'background': WHITE, 'foreground': RED,
-                       'font': (font, 10, 'bold')},
-            "console": idleConf.GetHighlight(theme, "console"),
-        })
+##        self.tagdefs.update({
+##            "stdin": {'background':None,'foreground':None},
+####            "stdout": idleConf.GetHighlight(theme, "stdout"),
+####            "stderr": idleConf.GetHighlight(theme, "stderr"),
+##            'stdout': {'background': WHITE, 'foreground': BLACK,
+##                       'font': (font, 10, 'bold')},
+##            'stderr': {'background': WHITE, 'foreground': RED,
+##                       'font': (font, 10, 'bold')},
+##            "console": idleConf.GetHighlight(theme, "console"),
+##        })
 
+        self.tagdefs.update({
+            'normal': {'background': 'black', 'foreground': 'white'},
+            "stdin": {'background':'black','foreground':'white'},
+            'stdout': {'background':'black', 'foreground':'white',
+                       'font': (font, 10, 'bold')},
+            'stderr': {'background': 'black', 'foreground': '#b7b7b7'},
+            "console": {'background': 'black', 'foreground': '#b7b7b7'},
+        })
     def removecolors(self):
         # Don't remove shell color tags before "iomark"
         for tag in self.tagdefs:
@@ -905,7 +913,8 @@ class PyShell(OutputWindow):
             root.withdraw()
             flist = PyShellFileList(root)
         #
-        OutputWindow.__init__(self, flist, None, None)
+##        OutputWindow.__init__(self, flist, None, None)
+        OutputWindow.__init__(self, flist, None, None, is_shell=True)
         #
 ##        self.config(usetabs=1, indentwidth=8, context_use_ps1=1)
         self.usetabs = True
@@ -1054,7 +1063,7 @@ class PyShell(OutputWindow):
     def ispythonsource(self, filename):
         "Override EditorWindow method: never remove the colorizer"
         # return True
-        return '.py'
+        return '.py' and '.txt'
 
     def short_title(self):
         return self.shell_title
@@ -1072,7 +1081,7 @@ class PyShell(OutputWindow):
                 return False
         else:
             nosub = "==== No Subprocess ===="
-        self.write("Python %s on %s\n%s\n%s" %
+        self.console.write("Python %s on %s\n%s\n%s" %
                    (sys.version, sys.platform, self.COPYRIGHT, nosub))
         self.text.focus_force()
         self.showprompt()

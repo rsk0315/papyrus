@@ -73,6 +73,7 @@ paren-closed=<KeyRelease-parenright> <KeyRelease-bracketright> <KeyRelease-brace
 [AutoComplete]
 enable=1
 popupwait=2000
+include-path=C:\Program Files\mingw-w64\x86_64-5.1.0-win32-seh-rt_v4-rev0\mingw64\x86_64-w64-mingw32\include\c++
 [AutoComplete_cfgBindings]
 force-open-completions=<Control-Key-space>
 [AutoComplete_bindings]
@@ -129,5 +130,6 @@ defext=cpp
 
 [RunCode]
 enable=1
+enable_shell=0
 [RunCode_cfgBindings]
 run-code=<Key-F8>

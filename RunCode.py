@@ -34,16 +34,27 @@ class RunCode(object):
         self.text.bind('<<run-code>>', self.run_code)
         self.subwin = None
 
-    def exec_from_key(self, event=None):
-        self.stdin.config(state='disabled')
-        self.execute(event)
-##        self.stdin.delete('insert', 'insert+1c')
-        string = self.stdin.get('1.0', 'end')
-##        self.stdin.delete('1.0', 'end')
-##        self.stdin.insert('1.0', string.rstrip())
-##        self.stdin.delete('end-1c', 'end')
-        self.stdin.config(state='normal')
-        self.stdin.focus_set()
+        try:
+            f = self.editwin.ftype.get()
+        except:
+            f = 'xxx'
+
+        self.vopt = BooleanVar()
+        self.tl = StringVar(value=2)
+        self.t_cmp_c = StringVar(value='gcc -Wall -O2 -o %s.exe %s.c')
+        self.t_cmp_cpp = StringVar(value='g++ -Wall -O2 -o %s.exe %s.cpp')
+        self.t_exec = StringVar(value='%s.exe < stdin > stdout 2> stderr')
+
+##    def exec_from_key(self, event=None):
+##        self.stdin.config(state='disabled')
+##        self.execute(event)
+####        self.stdin.delete('insert', 'insert+1c')
+##        string = self.stdin.get('1.0', 'end')
+####        self.stdin.delete('1.0', 'end')
+####        self.stdin.insert('1.0', string.rstrip())
+####        self.stdin.delete('end-1c', 'end')
+##        self.stdin.config(state='normal')
+##        self.stdin.focus_set()
 
     def _open_window(self, event=None):
         self.subwin = Toplevel(self.text)
@@ -51,37 +62,86 @@ class RunCode(object):
 
         kwargs = {
             'width': 40, 'height': 8,
-            'fg': 'white', 'bg': 'black', 'font': 'Consolas 10',
+            'bg': 'black',
             'insertbackground': 'white',
         }
 
-        self.stdin = StdIO('Standard Input', self._close_window, self.subwin, **kwargs)
-##        self.stdin.unbind('<Control-Key-Return>')
-        self.stdin.bind('<Control-Key-Return>', self.execute)
+##        self.stdin = StdIO(
+##            'Standard Input', self._close_window, self.subwin, fg='white',
+##            font='Consolas 10', **kwargs
+##        )
+##        self.stdin.bind('<Control-Key-Return>', self.execute)
 
         frame = Frame(self.subwin, width=40, height=3)
+        exlf = LabelFrame(frame, text='Execution')
+        colf = LabelFrame(frame, text='Compilation')
+
         self.exec_button = Button(
-            frame, text='Execute', command=self.execute,
+            exlf, text='Execute', command=self.execute,
+        )
+        self.comp_button = Button(
+            colf, text='Compile', command=self.compile_,
         )
 
-        labelframe = LabelFrame(frame, text='Time Limit')
-        unit = Label(labelframe, text='sec')
+        tllf = LabelFrame(exlf, text='Time Limit')
+        unit = Label(tllf, text='sec')
         unit.pack(side='right')
-        tl = StringVar(value=2)
+##        tl = StringVar(value=2)
         self.time_limit = Spinbox(
-            labelframe, from_=1, to=60, increment=1, width=8, textvariable=tl,
+            tllf, from_=1, to=60, increment=1, width=8, textvariable=self.tl,
         )
         self.time_limit.pack(anchor='w')
 
-        labelframe.pack(side='top', anchor='e')
-##        space = Label(frame, text=' '*12)  # todo
-##        space.pack(side='right', anchor='s')
-        self.exec_button.pack(side='bottom', anchor='s')
+        tllf.pack(side='right', padx=8)
+
+        vcb = Checkbutton(colf, text='verbosely', variable=self.vopt)
+        vcb.pack(side='right', anchor='se')
+
+        self.comp_button.pack(side='left', anchor='s')
+        self.exec_button.pack(side='left', anchor='s')
+        exlf.pack(side='right', fill='both')
+        colf.pack(side='left', fill='both')
 
         frame.pack(side='top', fill='both')
 
-        self.stdout = StdIO('Standard Output', self._close_window, self.subwin, **kwargs)
-        self.stderr = StdIO('Standard Error', self._close_window, self.subwin, **kwargs)
+        cmds = LabelFrame(self.subwin, text='Commands')
+        ccmd_c = Entry(
+            cmds, textvariable=self.t_cmp_c, state='readonly',
+            fg='white', bg='black',
+            readonlybackground='black',
+            font='Consolas 10', width=40,
+        )
+        ccmd_cpp = Entry(
+            cmds, textvariable=self.t_cmp_cpp, state='readonly',
+            fg='white', bg='black',
+            readonlybackground='black',
+            font='Consolas 10', width=40,
+        )
+        ecmd = Entry(
+            cmds, textvariable=self.t_exec, state='readonly',
+            fg='white', bg='black',
+            readonlybackground='black',
+            font='Consolas 10', width=40,
+        )
+        ccmd_c.pack(side='top', anchor='nw')
+        ccmd_cpp.pack(side='top', anchor='nw')
+        ecmd.pack(side='top', anchor='nw')
+        #cmds.pack(side='top', fill='both')
+
+        self.stdin = StdIO(
+            'Standard Input', self._close_window, self.subwin, fg='white',
+            font='Consolas 10', **kwargs
+        )
+        self.stdin.bind('<Control-Key-Return>', self.execute)
+
+        self.stdout = StdIO(
+            'Standard Output', self._close_window, self.subwin, fg='white',
+            font='Consolas 10 bold', **kwargs
+        )
+        self.stderr = StdIO(
+            'Standard Error', self._close_window, self.subwin, fg='#b7b7b7',
+            font='Consolas 10', **kwargs
+        )
 
         self.stdin.focus_set()
 
@@ -100,11 +160,54 @@ class RunCode(object):
             self.subwin.focus_set()
         except (TclError, AttributeError):
             self._open_window()
-##        if self.subwin is None:
-##            self._open_window()
-##        else:
-##            #print `self.subwin`
-##            self.subwin.focus_set()
+
+    def compile_(self, event=None):
+        if self.io.filename is None:
+            return
+
+##        self.stdout.delete('1.0', 'end')
+##        self.stderr.delete('1.0', 'end')
+##
+        def run_compile():
+            if not hasattr(self.editwin, 'ext'):
+                return
+
+            try:
+                f = self.editwin.ftype.get()
+            except (AttributeError,):
+                return
+
+            if f in ('C/l'):
+                cc = idleConf.GetOption('extensions', 'CompileCode', 'compile_c')
+            elif f in ('C++/l'):
+                cc = idleConf.GetOption('extensions', 'CompileCode', 'compile_cpp')
+
+            raw_name = os.path.splitext(self.io.filename)[0]
+            cc = cc.format(raw_name)
+            if self.vopt.get():
+                cc += ' -v'
+
+
+            self.stdout.delete('1.0', 'end')
+            self.stderr.delete('1.0', 'end')
+
+##            self.stderr.insert('1.0', 'Compilation in progress')  # does not appear?
+            p = subprocess.Popen(
+                cc, shell=True,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            stdout, stderr = p.communicate()
+            self.stdout.insert('1.0', stdout)
+##            self.stderr.delete('1.0', 'end')
+            self.stderr.insert('1.0', stderr)
+
+##        self.stderr.insert('1.0', 'Compilation in progress')
+        d = threading.Thread(name='compile', target=run_compile)
+        d.start()
+        d.join(15)
+        self.stdin.focus_set()
 
     def execute(self, event=None):
         if self.io.filename is None:
@@ -139,7 +242,17 @@ class RunCode(object):
         d.join(int(self.time_limit.get()))
         self.stdin.focus_set()
         if d.isAlive():
-            self.stderr.insert('1.0', 'Time Limit Exceeded')
+            self.stderr.insert('1.0', '[Time Limit Exceeded]')
+            p = subprocess.Popen(
+                'taskkill /im {} /f /t'.format(os.path.basename(exec_name)),
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                shell=True,
+            )
+            stdout, stderr = p.communicate()
+##            self.stderr.insert('end', stdout)
+##            self.stderr.insert('end', stderr)
             self.stdin.focus_set()
 
         self.stdin.focus_set()

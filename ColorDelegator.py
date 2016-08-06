@@ -77,9 +77,11 @@ def unify(*patterns):
 def make_pat(ext):
     try:
         lang = getattr(__import__('languages'+ext), ext[1:])
-    except ImportError:
+    except ImportError as e:
+        print e
         return ''
     except Exception as e:
+        print e
         return ''
 
     try:
@@ -88,7 +90,8 @@ def make_pat(ext):
         comment = lang.COMMENT
         string = lang.STRING
         definition = lang.DEFINITION
-    except AttributeError:
+    except AttributeError as e:
+        print e
         return ''
 
     if hasattr(lang, 'MISC'):
@@ -113,7 +116,7 @@ class ColorDelegator(Delegator):
         Delegator.__init__(self)
         self.ext = altext(ext)
         self.prog = regex.compile(make_pat(ext), flags=regex.S|regex.M)
-#
+
         try:
             self.lang = getattr(__import__('languages'+ext), ext[1:])
             if hasattr(self.lang, 'read_twice'):
@@ -125,7 +128,6 @@ class ColorDelegator(Delegator):
             self.read_twice = None
         finally:
             self.LoadTagDefs()
-
 
     def setdelegate(self, delegate):
         if self.delegate is not None:
@@ -330,6 +332,7 @@ class ColorDelegator(Delegator):
                     self.tag_remove(tag, mark, next)
                 chars = chars + line
 ##                print `chars`
+                self.next_start = 0
                 try:
                     m = self.prog.search(chars)
                 except _regex_core.error as e:
@@ -337,6 +340,8 @@ class ColorDelegator(Delegator):
                     return  # todo
                 p = 0
                 while m:
+                    self.next_start = m.end()
+##                    print `m.group()`
                     for key, value in m.groupdict().items():
                         if value:
                             a, b = m.span(key)
@@ -348,14 +353,14 @@ class ColorDelegator(Delegator):
                                     self, head, key, value, chars, m
                                 )
 
-                    if m.start() == m.end():
+                    if m.start() == self.next_start:
                         p = m.start()+1
                         m = self.prog.search(chars, p)
                         if p == m.start():
                             m = None
                     else:
                         try:
-                            m = self.prog.search(chars, m.end())
+                            m = self.prog.search(chars, self.next_start)
                         except _regex_core.error as e:
                             # avoid too much backtracking
                             # which may occur disaster
@@ -398,7 +403,7 @@ def _color_delegator(parent):  # htest #
     text.focus_set()
 
     p = Percolator(text)
-    d = ColorDelegator()
+    d = ColorDelegator('.py')
     p.insertfilter(d)
 
 if __name__ == "__main__":

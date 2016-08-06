@@ -163,7 +163,7 @@ class EditorWindow(object):
 
     help_url = None
 
-    def __init__(self, flist=None, filename=None, key=None, root=None):
+    def __init__(self, flist=None, filename=None, key=None, root=None, **kwargs):
         if EditorWindow.help_url is None:
             dochome =  os.path.join(sys.prefix, 'Doc', 'index.html')
             if sys.platform.count('linux'):
@@ -227,6 +227,13 @@ class EditorWindow(object):
             # to 'wordprocessor' to achieve the same display of tabs as in
             # older tk versions.
             text_options['tabstyle'] = 'wordprocessor'
+
+        self.is_shell = kwargs.get('is_shell', False)
+        if self.is_shell:
+            text_options['width'] = 80
+            text_options['height'] = 24
+            text_options['insertbackground'] = 'white'
+
         self.text = text = MultiCallCreator(Text)(text_frame, **text_options)
         self.top.focused_widget = self.text
 
@@ -520,6 +527,7 @@ class EditorWindow(object):
     def set_xxx_bar(self):
         self.xxx_bar = self.XXXBar(self.top, self, bg='#ffffff')
         sep = Frame(self.top, height=1, borderwidth=1, background='grey75')
+##        sep = Frame(self.top, height=1, borderwidth=1, background='white')
 
 ##        self.xxx_bar.set_label(
 ##            'xxx',
@@ -1180,6 +1188,14 @@ class EditorWindow(object):
             selectforeground=select_colors['foreground'],
             selectbackground=select_colors['background'],
             )
+        if self.is_shell:
+            self.text.config(
+                foreground='white',
+                background='black',
+                insertbackground='white',
+                selectbackground='cyan',
+            )
+
         if TkVersion >= 8.5:
             self.text.config(
                 inactiveselectbackground=select_colors['background'])
