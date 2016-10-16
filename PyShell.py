@@ -1663,6 +1663,7 @@ def main():
 
     while flist.inversedict:  # keep IDLE running while files are open.
         root.mainloop()
+
     root.destroy()
     capture_warnings(False)
 

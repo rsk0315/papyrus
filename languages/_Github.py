@@ -4,6 +4,7 @@ from idlelib.configHandler import idleConf
 
 
 font = idleConf.GetOption('main', 'EditorWindow', 'font')
+
 _f = 'foreground'
 _b = 'background'
 
@@ -19,10 +20,10 @@ BLACK = '#333333'
 
 append_tags = {
     'COMMENT': {_f: GREY, _b: WHITE},
-    'KEYWORD': {_f: RED, _b: WHITE},
+    'KEYWORD': {_f: RED, _b: WHITE, 'font': (font, 10, 'bold')},
     'BUILTIN': {_f: SKY, _b: WHITE},
-    'STRING': {_f: INDIGO, _b: WHITE},
-    'DEFINITION': {_f: PURPLE, _b: WHITE},
+    'STRING': {_f: INDIGO, _b: WHITE, 'font': (font, 10, 'bold')},
+    'DEFINITION': {_f: PURPLE, _b: WHITE, 'font': (font, 10, 'italic')},
     'ERROR': {_f: '#f8f8f8', _b: '#b52a1d'},
     'SELECTED': {_f: BLACK, _b: '#ffffc5'},  # TODO
 
@@ -35,10 +36,13 @@ append_tags = {
     'CLASSDEF': {_f: PURPLE, _b: WHITE},
     'FUNCDEF': {_f: PURPLE, _b: WHITE},
     'STRING_PREFIX': {_f: RED, _b: WHITE},
-    'PREPROCESSOR': {_f: RED, _b: WHITE},
+    'PREPROCESSOR': {_f: RED, _b: WHITE, 'font': (font, 10, 'italic')},
     'SHARP': {_f:BLACK, _b:WHITE},
     'PUNC': {_f:BLACK, _b:WHITE},
     'LINK': {_f:BLACK, _b:WHITE, 'font':(font, 10, 'underline')},
+    'STL_CLASSES': {_f:SKY, _b:WHITE},
+    'LINE_COMMENT': {_f: GREY, _b: WHITE, 'font':(font, 10, 'italic')},
+    'BLOCK_COMMENT': {_f: GREY, _b: WHITE, 'font':(font, 10, 'bold')},
 
     'RE_SGL': {_f: SKY, _b: WHITE},
     'RE_REPEAT': {_f: RED, _b: WHITE},

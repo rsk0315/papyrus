@@ -67,113 +67,15 @@ class CallTips:
     def open_calltip(self, evalfuncs):
         self._remove_calltip_window()
 
-        # - 2016 9 28 --
-        lt = self.text.get('insert linestart', 'insert')
-        m = re.search(r'(\w+)<[^>]*', lt)
-
-        if m:
-            from idlelib.languages import _cppclassref
-            if m.group(1) in _cppclassref.CPP_CLASSREF:
-                arg_text = _cppclassref.CPP_CLASSREF[m.group(1)]
-                if not arg_text:
-                    return
-
-                self.calltip = self._make_calltip_window()
-                print `self.text.index('insert-1c')`, `self.text.index('insert').split('.')[0]+'.end'`
-                self.calltip.showtip(
-                    arg_text,
-                    self.text.index('insert-1c'),
-                    self.text.index('insert').split('.')[0]+'.end',
-                )
-                return
-        # ---
-
         hp = HyperParser(self.editwin, "insert")
         sur_paren = hp.get_surrounding_brackets('(')
         if not sur_paren:
             return
-
         hp.set_index(sur_paren[0])
         expression = hp.get_expression()
         if not expression or (not evalfuncs and expression.find('(') != -1):
             return
         arg_text = self.fetch_tip(expression)
-        # - 2016 9 27 --
-        if self.editwin.ftype.get() in ('C++/l',):
-            e = ''
-            if not arg_text:
-                # treat as constructor
-                lt = self.text.get('insert linestart', 'insert lineend')
-                print `lt`, 1
-                if re.match(r'^[ \t]', lt, flags=re.MULTILINE):
-                    e = lt.lstrip().split()[0]
-                    if e == 'string':
-                        e = 'basic_string'
-                    arg_text = self.fetch_tip(e)
-
-            if not arg_text:
-                e = e.split('<')[0]
-                if e == 'string':
-                    e = 'basic_string'
-                arg_text = self.fetch_tip(e)
-
-            if not arg_text:
-                # treat as member function
-                if expression.count('.') != 1:
-                    return # gives up
-
-                name = expression.split('.')[0]
-                func = expression.split('.')[1]
-                # queue<int> q;  < hit this
-                # q.push(1);     < skip this
-                # q.front();     < when call here
-                ln = int(sur_paren[0].split('.')[0])-1
-                pat = re.compile(
-                    (
-                        r'\b{n}(?!\.)'
-                    ).format(n=name)
-                )
-                lt = self.text.get('{}.0'.format(ln), '{}.end'.format(ln))
-                m = pat.search(lt)
-                while ln > 0 and not m:
-                    lt = self.text.get('{}.0'.format(ln), '{}.end'.format(ln))
-                    m = pat.search(lt)
-                    ln -= 1
-
-                if m:
-                    pat = re.compile(
-                        (
-                            r'((?:{w}::)*{w}(?:<[^<>]*(?:<[^>]*>)*[^<>]*>)?)\s*'
-                            r'{n}'
-                        ).format(
-                            n=name,
-                            w=r'(?:[_A-Za-z]\w*)',
-                        )
-                    )
-                    m2 = pat.search(lt)
-                    if m2:
-                        e = m2.group(1)
-                        if e == 'string':
-                            e = 'basic_string'
-                        arg_text = self.fetch_tip('{}::{}'.format(e, func))
-
-                    if not arg_text:
-                        e = lt.lstrip().split()[0]
-                        if e == 'string':
-                            e = 'basic_string'
-                        arg_text = self.fetch_tip(
-                            '{}::{}'.format(e, func)
-                        )
-                    if not arg_text:
-                        e = e.split('<')[0]
-                        if e == 'string':
-                            e = 'basic_string'
-                        arg_text = self.fetch_tip(
-                            '{}::{}'.format(e, func)
-                        )
-
-##            print `e`
-        # ---
         if not arg_text:
             return
         self.calltip = self._make_calltip_window()
@@ -201,11 +103,6 @@ class CallTips:
             return rpcclt.remotecall("exec", "get_the_calltip",
                                      (expression,), {})
         else:
-            #
-            if self.editwin.ftype.get() in ('C++/l',):
-##                print expression
-                return get_cppref(expression)
-            #
             entity = self.get_entity(expression)
             return get_arg_text(entity)
 
@@ -238,19 +135,6 @@ def _find_constructor(class_ob):
 _MAX_COLS = 85
 _MAX_LINES = 5  # enough for bytes
 _INDENT = ' '*4  # for wrapped signatures
-
-# - 2016 9 25 --
-from idlelib.languages import _cppref
-
-def get_cppref(ex):
-    ex = ex.strip()
-    if ex in ('switch',):
-        return None
-
-    return _cppref.CPPREF.get(ex, '')
-
-##    return ex
-# ---
 
 def get_arg_text(ob):
     '''Return a string describing the signature of a callable object, or ''.
@@ -310,7 +194,7 @@ def get_arg_text(ob):
                         i += 1
                     items.append((pre_name+'%s') % i)
         argspec = ", ".join(items)
-        argspec = "(%s)" % re.sub(r"(?<!\d)\.\d+", "<tuple>", argspec)
+        argspec = "(%s)" % re.sub("(?<!\d)\.\d+", "<tuple>", argspec)
 
     lines = (textwrap.wrap(argspec, _MAX_COLS, subsequent_indent=_INDENT)
             if len(argspec) > _MAX_COLS else [argspec] if argspec else [])

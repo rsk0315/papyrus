@@ -26,10 +26,12 @@ class CodeSnippet(object):
         if re.search(r'[ \t]|^$', query):
             return
 
+        sdir, sbase = os.path.split(query)
+
         indent = re.search(r'[ \t]*', curline).group()
 
         idlelib_path = os.path.dirname(__file__)
-        snippet_path = os.path.join(idlelib_path, 'snippets')
+        snippet_path = os.path.join(idlelib_path, 'snippets', sdir)
         snippet_files = [
             f for f in os.listdir(snippet_path)
             if os.path.isfile(os.path.join(snippet_path, f))
@@ -40,17 +42,17 @@ class CodeSnippet(object):
             ext = ''
 
         snippet = ''
-        if query+ext in snippet_files:
-            snippet_file = os.path.join(snippet_path, query+ext)
+        if sbase+ext in snippet_files:
+            snippet_file = os.path.join(snippet_path, sbase+ext)
         else:
-            candidate = [s for s in snippet_files if s.startswith(query)]
+            candidate = [s for s in snippet_files if s.startswith(sbase)]
             # todo for auto-completion
             if len(candidate) == 1:
                 snippet_file = os.path.join(snippet_path, candidate[0])
             else:
                 return
 
-        snippet = open(snippet_file).read()
+        snippet = open(snippet_file).read().rstrip()
         if indent:
             snippet = ('\n'+indent).join(re.split(r'[\r\n]', snippet))
 

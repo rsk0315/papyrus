@@ -44,12 +44,22 @@ class RunCode(object):
 
         self.wall = BooleanVar(value=True)
         self.wextra = BooleanVar()
-        self.addopts = StringVar()
 
         self.tl = StringVar(value=2)
         self.t_cmp_c = StringVar(value='gcc -Wall -O2 -o %s.exe %s.c')
         self.t_cmp_cpp = StringVar(value='g++ -Wall -O2 -o %s.exe %s.cpp')
         self.t_exec = StringVar(value='%s.exe < stdin > stdout 2> stderr')
+
+##    def exec_from_key(self, event=None):
+##        self.stdin.config(state='disabled')
+##        self.execute(event)
+####        self.stdin.delete('insert', 'insert+1c')
+##        string = self.stdin.get('1.0', 'end')
+####        self.stdin.delete('1.0', 'end')
+####        self.stdin.insert('1.0', string.rstrip())
+####        self.stdin.delete('end-1c', 'end')
+##        self.stdin.config(state='normal')
+##        self.stdin.focus_set()
 
     def _open_window(self, event=None):
         self.subwin = Toplevel(self.text)
@@ -61,6 +71,12 @@ class RunCode(object):
             'insertbackground': 'white',
         }
 
+##        self.stdin = StdIO(
+##            'Standard Input', self._close_window, self.subwin, fg='white',
+##            font='Consolas 10', **kwargs
+##        )
+##        self.stdin.bind('<Control-Key-Return>', self.execute)
+
         frame = Frame(self.subwin, width=40, height=3)
         exlf = LabelFrame(frame, text='Execution')
         colf = LabelFrame(frame, text='Compilation')
@@ -68,17 +84,17 @@ class RunCode(object):
         self.exec_button = Button(
             exlf, text='Execute', command=self.execute,
         )
-##        self.comp_button = Button(
-##            colf, text='Compile', command=self.compile_,
-##        )
-##
-##        self.comp_button.pack(side='right', anchor='s', padx=2, pady=8)
+        self.comp_button = Button(
+            colf, text='Compile', command=self.compile_,
+        )
+
+        self.comp_button.pack(side='right', anchor='s', padx=2, pady=8)
         self.exec_button.pack(side='right', anchor='s', padx=2, pady=8)
 
         tllf = LabelFrame(exlf, text='Time Limit')
         unit = Label(tllf, text='sec')
         unit.pack(side='right')
-
+##        tl = StringVar(value=2)
         self.time_limit = Spinbox(
             tllf, from_=1, to=60, increment=1, width=8, textvariable=self.tl,
         )
@@ -86,21 +102,19 @@ class RunCode(object):
 
         tllf.pack(side='right', padx=2)
 
-        bframe = Frame(colf)
+        stdlf = LabelFrame(colf, text='C++ Standards')
 
-        self.comp_button = Button(
-            bframe, text='Compile', command=self.compile_,
-        )
+##        vcb = Checkbutton(colf, text='verbosely', variable=self.cpp14opt)
+##        vcb = Checkbutton(oplf, text='C++14', variable=self.cpp14opt)
 
-        self.comp_button.pack(side='right', anchor='s', padx=2, pady=8)
-
-        stdlf = LabelFrame(bframe, text='C++ Standards')
+##        vcb = Checkbutton(oplf, text='std=c++14', variable=self.cpp14opt)
+##        vcb.pack(side='right', anchor='se')
 
         available_stds = [
             ('98', ' --std=c++98'),
             ('11', ' --std=c++11'),
             ('14', ' --std=c++14'),
-            ('17', ' --std=c++17'),
+##            ('17', ' --std=c++17'),
         ]
         for text, value in available_stds:
             vrb = Radiobutton(
@@ -110,43 +124,57 @@ class RunCode(object):
 
         stdlf.pack(side='right', padx=2, pady=2, fill='both')
 
-        wlf = LabelFrame(bframe, text='Warnings')
+        wlf = LabelFrame(colf, text='Warnings')
 
         wacb = Checkbutton(wlf, text='all', variable=self.wall)
         wecb = Checkbutton(wlf, text='extra', variable=self.wextra)
 
         wacb.pack(side='left')
         wecb.pack(side='left')
-
+##        wlf.pack(side='top', anchor='e')
         wlf.pack(side='right', padx=2, pady=2, fill='both')
 
-        bframe.pack(side='top', fill='both', expand=True)
+##        self.comp_button.pack(side='left', anchor='w')
+##        self.exec_button.pack(side='left', anchor='w')
+##        exlf.pack(side='right', fill='both', expand=True)
+##        colf.pack(side='left', fill='both', expand=True)
+##
+##        frame.pack(side='top', fill='both')
 
-        addoptlf = LabelFrame(colf, text='Additional options')
-        self.addopte = Entry(
-            addoptlf, textvariable=self.addopts,
-            width=20,  font='Consolas 10',
-            foreground='white', background='black', insertbackground='white',
-        )
-
-        self.addopte.bind('<Control-Key-Return>', self.compile_)
-        self.addopte.bind('<Escape>', self._close_window)
-
-        self.addopte.pack(side='top', fill='both', expand=True)
-        addoptlf.pack(side='top', padx=2, pady=2, fill='both')
-
-        exlf.pack(side='top', fill='both', expand=True)
         colf.pack(side='top', fill='both', expand=True)
+        exlf.pack(side='top', fill='both', expand=True)
 
         frame.pack(side='top', fill='both')
+
+##        cmds = LabelFrame(self.subwin, text='Commands')
+##        ccmd_c = Entry(
+##            cmds, textvariable=self.t_cmp_c, state='readonly',
+##            fg='white', bg='black',
+##            readonlybackground='black',
+##            font='Consolas 10', width=40,
+##        )
+##        ccmd_cpp = Entry(
+##            cmds, textvariable=self.t_cmp_cpp, state='readonly',
+##            fg='white', bg='black',
+##            readonlybackground='black',
+##            font='Consolas 10', width=40,
+##        )
+##        ecmd = Entry(
+##            cmds, textvariable=self.t_exec, state='readonly',
+##            fg='white', bg='black',
+##            readonlybackground='black',
+##            font='Consolas 10', width=40,
+##        )
+##        ccmd_c.pack(side='top', anchor='nw')
+##        ccmd_cpp.pack(side='top', anchor='nw')
+##        ecmd.pack(side='top', anchor='nw')
+##        #cmds.pack(side='top', fill='both')
 
         self.stdin = StdIO(
             'Standard Input', self._close_window, self.subwin, fg='white',
             font='Consolas 10', **kwargs
         )
         self.stdin.bind('<Control-Key-Return>', self.execute)
-        self.addopte.bind('<Key-Tab>', lambda e: self.stdin.focus_set)
-        self.stdin.bind('<Shift-Key-Tab>', lambda e: self.addopte.focus_set)
 
         self.stdout = StdIO(
             'Standard Output', self._close_window, self.subwin, fg='white',
@@ -179,6 +207,9 @@ class RunCode(object):
         if self.io.filename is None:
             return
 
+##        self.stdout.delete('1.0', 'end')
+##        self.stderr.delete('1.0', 'end')
+##
         def run_compile():
             if not hasattr(self.editwin, 'ext'):
                 return
@@ -195,31 +226,27 @@ class RunCode(object):
 
             raw_name = os.path.splitext(self.io.filename)[0]
             cc = cc.format(raw_name)
+##            if self.cpp14opt.get():
+####                cc += ' -v'
+##                cc += ' --std=c++14'
 
-            cc_ = ''
-            cc_ += self.cppstd.get()
+            cc += self.cppstd.get()
 
-            if self.wall.get():
-                cc_ += ' -Wall'
-            if self.wextra.get():
-                cc_ += ' -Wextra'
+            if self.wall:
+                cc += ' -Wall'
+            if self.wextra:
+                cc += ' -Wextra'
 
-##            options = (
-####                '-lquadmath',
-##            )
-##            for o in options:
-##                cc += ' ' + o
-
-            cc_ += ' ' + self.addopts.get()
-
-            if re.search(r'\s?-E\b', cc_):
-                cc = re.sub(r'-o [^ ]+', '', cc)
-
-            cc += cc_
+            options = (
+##                '-lquadmath',
+            )
+            for o in options:
+                cc += ' ' + o
 
             self.stdout.delete('1.0', 'end')
             self.stderr.delete('1.0', 'end')
 
+##            self.stderr.insert('1.0', 'Compilation in progress')  # does not appear?
             p = subprocess.Popen(
                 cc, shell=True,
                 stdin=subprocess.PIPE,
@@ -236,9 +263,12 @@ class RunCode(object):
             stderr = re.sub(fullpath_win, basename, stderr)
             stderr = re.sub(fullpath_unix, basename, stderr)
 
+##            stdout, stderr = p.communicate()
             self.stdout.insert('1.0', stdout)
+##            self.stderr.delete('1.0', 'end')
             self.stderr.insert('1.0', stderr)
 
+##        self.stderr.insert('1.0', 'Compilation in progress')
         d = threading.Thread(name='compile', target=run_compile)
         d.start()
         d.join(15)
@@ -268,6 +298,7 @@ class RunCode(object):
 
             crlf = lambda s: s.replace('\r\n', '\n').replace('\r', '\n')
             stdout, stderr = map(crlf, p.communicate(stdin))
+##            stdout, stderr = p.communicate(stdin)
             self.stdout.insert('1.0', stdout)
             self.stderr.insert('1.0', stderr)
 
@@ -288,7 +319,8 @@ class RunCode(object):
             )
             stdout, stderr = p.communicate()
             self.stderr.insert('end', '[TERMINATED]')
-
+##            self.stderr.insert('end', stdout)
+##            self.stderr.insert('end', stderr)
             self.stdin.focus_set()
 
         self.stdin.focus_set()

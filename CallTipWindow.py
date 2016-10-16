@@ -152,6 +152,10 @@ def _calltip_window(parent):  # htest #
         calltip.hidetip()
     text.event_add("<<calltip-show>>", "(")
     text.event_add("<<calltip-hide>>", ")")
+    # - 2016 9 28 --
+    text.event_add('<<calltip-show>>', '<less>')
+    text.event_add('<<calltip-hide>>', '<greater>')
+    # ---
     text.bind("<<calltip-show>>", calltip_show)
     text.bind("<<calltip-hide>>", calltip_hide)
     text.focus_set()

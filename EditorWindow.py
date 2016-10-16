@@ -661,13 +661,13 @@ class EditorWindow(object):
         try:
             if 'develop' in menudict:
                 _idle_path = os.path.dirname(__file__)
-                _my_dev_files = [
-                    ('AutoComplete', 0),
-                    ('Bindings', 0),
-                    ('ColorDelegator', 0),
-                    ('EditorWindow', 0), 
-                    ('languages\\cpp', 11),
-                ]
+##                _my_dev_files = [
+##                    ('AutoComplete', 0),
+##                    ('Bindings', 0),
+##                    ('ColorDelegator', 0),
+##                    ('EditorWindow', 0), 
+##                    ('languages\\cpp', 11),
+##                ]
                 fileopen = lambda fn: self.io.open(editFile=os.path.join(_idle_path, fn+'.py'))
 
                 menudict['develop'].add_command(
@@ -682,6 +682,8 @@ class EditorWindow(object):
                     label='IOBinding', underline=0, command=lambda: fileopen('IOBinding'))
                 menudict['develop'].add_command(
                     label='PyShell', underline=0, command=lambda: fileopen('PyShell'))
+                menudict['develop'].add_command(
+                    label='RunCode', underline=0, command=lambda: fileopen('RunCode'))
                 menudict['develop'].add_command(
                     label='cpp.highlight', underline=4, command=lambda: fileopen('languages\\cpp'))
                 menudict['develop'].add_command(
@@ -1775,6 +1777,7 @@ class EditorWindow(object):
                 rawtext = text.get(startatindex, "insert")
                 y.set_str(rawtext)
                 y.set_lo(0)
+
 
             c = y.get_continuation_type()
             if c != PyParse.C_NONE:

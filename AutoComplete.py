@@ -143,8 +143,8 @@ class AutoComplete:
             mode = COMPLETE_ATTRIBUTES
             # while i and curline[i-1] in ID_CHARS:
             # todo ---
-            if re.search(r'^#include[ \t]*<?', curline, flags=re.M):
-                if re.search(r'^#include[ \t]*$', curline, flags=re.M):
+            if re.search(r'^[ \t]*#include[ \t]*<?', curline, flags=re.M):
+                if re.search(r'^[ \t]*#include[ \t]*$', curline, flags=re.M):
                     self.text.insert('insert lineend', '<')
                     curline = self.text.get('insert linestart', 'insert')
                     i += 1
@@ -215,7 +215,7 @@ class AutoComplete:
                         bigl = eval("dir()", namespace)
                     if ext in ('.cpp', '.hpp', '.c', '.h'):
                         idlelib_path = os.path.dirname(__file__)
-                        cpl_file = '{}/completions/cpp.acp'.format(idlelib_path)
+                        cpl_file = '{}/completions/completions.cpp'.format(idlelib_path)
                         bigl = []
                         with open(cpl_file) as fin:
                             bigl = [

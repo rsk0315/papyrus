@@ -133,3 +133,15 @@ enable=1
 enable_shell=0
 [RunCode_cfgBindings]
 run-code=<Key-F8>
+
+[EditSnippet]
+enable=1
+enable_shell=0
+[EditSnippet_cfgBindings]
+edit-snippet=<Alt-Key-n>
+
+[JudgeTestcase]
+enable=1
+enable_shell=0
+[JudgeTestcase_cfgBindings]
+judge-testcase=<Key-F9>

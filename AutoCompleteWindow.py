@@ -297,6 +297,7 @@ class AutoCompleteWindow:
         #elif (self.mode == COMPLETE_ATTRIBUTES and keysym in
         elif (self.mode in (COMPLETE_ATTRIBUTES, COMPLETE_HEADERS) and keysym in
               ("period", "space", "parenleft", "parenright", "bracketleft",
+               "comma", "semicolon", "less", "greater",
                #"bracketright")) or \
                "bracketright", "Return")) or \
              (self.mode == COMPLETE_FILES and keysym in

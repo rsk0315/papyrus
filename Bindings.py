@@ -24,6 +24,7 @@ menudefs = [
    ('_Open...', '<<open-window-from-file>>'),
    ('Open _Module...', '<<open-module>>'),
    ('Class _Browser', '<<open-class-browser>>'),
+   ('Edit Sn_ippet', '<<edit-snippet>>'),
    ('_Path Browser', '<<open-path-browser>>'),
    None,
    ('_Save', '<<save-window>>'),

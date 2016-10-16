@@ -14,8 +14,10 @@ def any(name, alternates):
 keywords = r'|'.join([
     r'(?<=(?:^|\n)[ \t]*#(?:\\\n|[^\n])*)defined',
     'auto',     'break',    'case',     'char',     'const',    'continue',
-    'default',  'do',       'double',   'else',     'enum',     'extern',
-    'float',    'for',      'goto',     'if',       'int',      'long',
+    'default',  'do',       'double',   r'(?<!#)else',
+    'enum',     'extern',
+    'float',    'for',      'goto',     r'(?<!#)if',
+    'int',      'long',
     'register', 'return',   'short',    'signed',   'sizeof',   'static',
     'struct',   'switch',   'typedef',  'union',    'unsigned', 'void',
     'volatile', 'while',
@@ -35,12 +37,13 @@ types = r'|'.join([
     'long',     'register', 'short',    'signed',   'static',   'struct',
     'typedef',  'union',    'unsigned', 'void',     'volatile',
     'bool',     # 'true',     'false',
-    'wchar_t',  'char16_t', 'char32_t',
+##    'wchar_t',  'char16_t', 'char32_t',
 
     'namespace' #
 ])
 keyword = [
     r'\b(?:{0})(?:\s+(?:{0}))*\b'.format(keywords+r'|'+types),
+    r'[Rr](?=")',
 ]
 
 preprocessor = [
@@ -51,27 +54,44 @@ preprocessor = [
     ]
 ]
 
+stl_class_list = [
+##    'vector', 'string', 'queue', 'list', 'array', 'stack', 'pair', 'deque',
+##    'set', 'map', 'tuple', 'iterator', 'complex', 'bitset',
+    'vector', 'array', 'deque',
+    r'(?:forward_)?list', r'(?:unordered_)?(?:multi)?(?:set|map)',
+    'stack', r'(?:priority_)?queue', 'deque',
+    r'(?:Input|Output|Forward|Bidirectional|RandomAccess)Iterator',
+    r'(?:BD|RA)?Iter',
+    'pair', 'complex', 'bitset', 'iterator', 'string', 'tuple',
+
+    r'[iu](?:8|16|32|64)', r'f(?:32|64)', r'[_A-Za-z]\w*_t',
+]
+
+stl_classes = [r'\b(?:' + r'|'.join(stl_class_list) + r')\b']
+
 string = [
     r'\'(?:[^\\\n]|\\[abfnrtv\'"?\\]|\\[0-7]{1,3}|\\[Xx][0-9A-Fa-f]{1,2})\'?',
-    r'"[^"\\\n]*(?:(?:\\.)+[^"\\\n]*)*"?',
+##    r'[Rr]"\([^"\\\n]*(?:\\.[^"\\\n]*)*(?:\)")?',
+    r'(?<!\boperator\s*)[Rr]?"[^"\\\n]*(?:(?:\\.)+[^"\\\n]*)*"?',
     r'@"[^"]*(?:(?:"")+[^"]*)*"?',
-    r'(?m)(?<=^[ \t]*#[ \t]*include)\s*<[^>\n]*>?'
+
+    r'(?m)(?<=^[ \t]*#[ \t]*include)\s*<[^>\n]*>?',
 ]
 
 number = [
     r'(?<!\w){0}'.format(i) for i in [
-        r'(?:\.\d+|\d+\.\d*)(?:[Ee][+-]?\d+)?[Ff]?',
+        r'(?:\.\d+|\d+\.\d*)(?:[Ee][+-]?\d+)?[FILQfilq]?',
         r'\d+(?:[Ee][+-]?\d+)',  # todo
         r'(?:0[Qq][0-3]+|0[Bb][01]+)',  # todo
-        r'(?:0[Xx][\dA-Fa-f]+|0[0-7]+|[1-9]\d*|0)[ULul]*',
+        r'(?:0[Xx][\dA-Fa-f]+|0[0-7]+|[1-9]\d*|0)[UILuli]*',
     ]
 ]
 
 operator = [
-    r'(?<!\boperator\b)[-!%&+*|<^>?:=~/,]',
+    r'(?<!\boperator\b)[-!%&+*|<^>?:=~/,.]',
     r';',
     r'##',
-    r'(?<!^)#',
+    r'(?<!^\s*)#',
 ]
 
 
@@ -102,22 +122,27 @@ definition = [
                 r'{w}{s}*'
                 r'(?:'
                     # int foo[1], bar;
-                    r'(?:\[\d*\]{t}*)+'
+                    r'(?:\[[\d_A-Z]*\]{t}*)+'
                     # int foo[1]={1}, bar;
                     r'(?:={t}*\{{[^;]*\}})?'                # array
                     # vector<int> foo(1), bar;
-                r'|'r'\((?:\)(?!{s}*\w)|[^):;])*\)'         # constructor
-##                r'|'r'(?P<C>\((?:[^();:]+|(?&C))*\))'     # todo
+                r'|'r'\([^:;()]*(?:\(\w*\)[^:;()]*)*\)'
+##                r'|'r'\((?:\)(?!{s}*\w)|[^):;])*\)'         # constructor
+##                r'|'r'(?P<C>\((?:[^();:]+|(?&C))*\))'     # xxx
                 r'|'r'={s}*'
                     r'(?:'
                         # int foo=sqrt(2), bar;
-                        r'[^(,:;]+\([^:;()]*\)[^),:;]'      # todo func
+                        r'[^/(,:;]+\([^:;()]*'
+                        r'(?:\(\w*\)[^:;()]*)*'
+                        r'\)[^),:;]*'     # todo func
+                        # int foo=ham[1], bar;
+                    r'|'r'[^[,:;]+\[[^:;[\]]*\][^\],:;]*'
                         # char foo='A', bar;
                     r'|'r"'(?:[^\\]|\\[^Xx0-7]|\\.+)'"      # todo char
                         # string foo="FOO", bar;
-                    r'|'r'@?"[^"\\]*(?:\\.[^"\\]*)*"'       # string
+##                    r'|'r'@?"[^"\\]*(?:\\.[^"\\]*)*"'       # xxx string
                         # int foo=1+sqrt(2)+a, bar;
-                    r'|'r'[\w()+\-*/%&|^~!?:.,{{}}]+'       # xxx other
+                    r'|'r'[-\w]+(?:[+\-*/%&|^~!?:.,{{}}]+\w*)*'       # xxx other
                     r')'
                 r')?'
                 # int foo, bar::baz, qux;
@@ -172,17 +197,17 @@ definition = [
                 r'|'r'={s}*'
                     r'(?:'
                         # string foo="FOO", bar;
-                        r'@?"[^"\\]*(?:\\.[^"\\]*)*"'       # string
+##                        r'@?"[^"\\]*(?:\\.[^"\\]*)*"'       # xxx string
                         # int foo=1+sqrt(2)+a, bar;
-                    r'|'r'[\w()+\-*/%&|^~!?:.,{{}}]+'       # xxx other
+                    r'|'r'[-\w]+(?:[+\-*/%&|^~!?:.,{{}}]+\w*)*'       # xxx other
                     r')'
                 r')?'
                 # int foo, bar::baz, qux;
-                r'{s}*(?:,|>?::(?#|<))(?:{t}|\*)*'
+                r'{s}*(?:,|>?::(?#|<))(?:{t}|[&*])*'
             r')*'
         r')'
         #r'{w}(?!,(?=[ \t]*[^*_A-Za-z])|[^=\s,;])'
-        r'{w}(?=,(?=[ \t]*[*_A-Za-z])|[ \t]*[=,;]|$)'
+        r'{w}(?=,(?=[ \t]*[*&_A-Za-z])|[ \t]*[=,;:]|$)'
     ).format(
         w=r'(?:\b[_A-Za-z]\w*)',
         s=(
@@ -217,10 +242,13 @@ definition = [
     r'|'r'\b(?:new|delete)\b'
     r'|'r'\(\s*\)|\[\s*\]'
     r'|'r'[~,]'
+    r'|'r'""\s*[_A-Za-z]\w*'
     r')',
 
     # constructor in struct or class
-    r'(?<![,(\-+*/^&|<>=%!.]{s}*){w}(?={s}*\([^{{;]*\){s}*[{{:])'.format(
+    r'(?<![,(\-+*/^&|<>=%!?.:]{s}*){w}'
+    #r'(?={s}*\([^{{;]*\){s}*[{{:])'.format(
+    r'(?={s}*\((?:\w+[ \t&*]+\w+(?:[^;{{])*)*\){s}*[{{:])'.format(
         w=r'(?:\b[_A-Za-z]\w*)',
         s=(
             r'(?:'
@@ -240,12 +268,13 @@ definition = [
 ]
 
 comment = [
-    r'//[^\n]*',
-    r'/\*[^*]*(?:\*(?:[^/*]|\*(?!/))|[^*])*(?:\*\*?/)?',
+    r'(?P<COMMENT>//(?P<LINE_COMMENT>[^\n]*))',
+    r'(?P<BLOCK_COMMENT>/\*[^*]*(?:\*(?:[^/*]|\*(?!/))|[^*])*(?:\*\*?/)?)',
 ]
 
 userdefined = [
-    r'\b\w+_t\b',
+##    r'\b\w+_t\b',
+    r'\b[_A-Za-z]\w*_t(?!\w)',
 
     (
         r'{w}'
@@ -260,7 +289,7 @@ userdefined = [
                     r'{s}*'
                 r')*'
             r'{s}*'
-            r'\){s}*[{{:]'
+            r'\){s}*[{{]'
             r')'
         r')'
     ).format(
@@ -275,13 +304,66 @@ userdefined = [
     ),
 ]
 
-KEYWORD = any('KEYWORD', keyword)
+regex_ = r'|'.join([
+    r'(?P<RE_REPEAT>\{(?:\d+,\d*|,\d+)\}|[+*?])',
+    r'(?P<COMMENT>\(\?#(?:[^\\)]|\\(?:.|\n))*\)?)',
+
+    r'(?P<RE_PAR>\)|\()'                # )
+    r'(?P<RE_PARENTHESIS>'
+        r'(?P<RE_NAME>'
+            r'(?:'
+                r'\?P<[_A-Za-z]\w*>'    # (?P<NAME>
+            r'|'r'\?P=[_A-Za-z]\w*'     # (?=NAME
+            r')'
+        r'|'
+            r'(?:'
+                r'\*'
+                r'(?:FAIL|F|PRUNE|SKIP)\b'
+            r')'
+        r')'
+    r'|'r'\?(?::|>|[aiLmsux]+)'         # (?: | (?>: | (?aiLmsux
+    r'|'r'\?<?[!=]'                     # assertion
+    r'|'r'\?\((?:\d+|[_A-Za-z]\w*)\)'   # (?(name/id)
+    r'|'                                # (
+    r')',
+
+    r'(?P<KEYWORD>\[:[^:]+:\])',
+    r'(?P<RE_BRACKET>\[)'
+    r'(?P<RE_CARET>\^)?'
+    r'(?P<RE_CHARS>'
+        r'(?:'
+            r'\]'
+            r'(?:\\.|[^\]\\])*'
+            r'\]?'
+        r'|'
+            r'(?:\\.|[^\]\\])+'
+            r'\]?'
+        r'|)'
+    r')',
+    r'(?P<SPECIAL>\\(?:[AZbBdDsSwW]|\d+|g<(?:\d+|[_A-Za-z]\w*)>))',
+
+    r'(?P<RE_SGL>[.^$|]|&&|~~|--)',
+    r'(?P<RE_SPECIAL>\\.)',
+])
+
+freq_used_val = [
+    r'\b(?:' + r'|'.join([
+        'true', 'false',
+##        'cin', 'cout', 'cerr', 'endl',
+    ]) + r')\b'
+]
+
+KEYWORD = (
+    any('KEYWORD', keyword) + r'|' +
+    any('STL_CLASSES', stl_classes)
+)
 BUILTIN = (
     any('PREPROCESSOR', preprocessor) + r'|' +
-    any('BUILTIN', number+userdefined+[r'\b(?:true|false)\b']) + r'|' +
+    any('BUILTIN', number+userdefined+freq_used_val) + r'|' +
     any('OPERATOR', operator)
 )
-COMMENT = any('COMMENT', comment)
+##COMMENT = any('COMMENT', comment)
+COMMENT = r'|'.join(comment)
 STRING = any('STRING', string)
 DEFINITION = (
     any('DEFINITION', definition)
@@ -306,20 +388,23 @@ DEF_POINTER_COMMA = r'(?P<SYMBOL>[*,]+)'
 SPECIAL_CHAR = (
     r'(?P<SPECIAL>\\'
         r'(?:'
-            r'[abtnvfr]|[Xx][0-9A-Fa-f]{1,2}|[0-7]{1,3}'
+            r'[abtnvfr\\]|[Xx][0-9A-Fa-f]{1,2}|[0-7]{1,3}'
         r')'
     r')'
 r'|'r'(?P<FORMAT>%'
         r'(?:[-+ 0#])?'
         r'(?:\d+)?'
         r'(?:\.\d+)?'
-        r'(?:[Luhl]+|I\d+)?'
+        r'(?:[LQuhlyz]+|I\d+)?'
         r'(?:[diuoxXcsfeEgGp%])'
     r')'
 )
 
+REGEX_PAT = regex.compile(regex_)
+
+
 def read_twice(self, head, key, value, chars, m):
-    if key == 'STRING' and value[0] not in "'@":
+    if key == 'STRING' and value[0] not in "@Rr":
         cprog = regex.compile(SPECIAL_CHAR)
         mc = cprog.search(chars, m.start())
         while mc and mc.end() <= m.end():
@@ -333,6 +418,93 @@ def read_twice(self, head, key, value, chars, m):
                                     head + '+{}c'.format(ac),
                                     head + '+{}c'.format(bc))
             mc = cprog.search(chars, mc.end())
+
+    elif key == 'STRING' and value[0] in "Rr":
+        rprog = regex.compile(REGEX_PAT)
+
+        self.tag_remove('STRING',
+                        head + '+{}c'.format(m.start()),
+                        head + '+{}c'.format(m.start()+1))
+        self.tag_add('OPERATOR',
+                     head + '+{}c'.format(m.start()),
+                     head + '+{}c'.format(m.start()+1))
+
+        if len(regex.search(r'(\\*)"?$', value).group(1)) % 2:
+            has_eos = True
+        else:
+            has_eos = False
+
+        mr = rprog.search(chars, m.start())
+        while mr and mr.end() <= m.end():
+            for kr, vr in mr.groupdict().items():
+                if vr:
+                    ar, br = mr.span(kr)
+                    self.tag_remove('STRING',
+                                    head + '+{}c'.format(ar),
+                                    head + '+{}c'.format(br))
+                    if kr == 'RE_CHARS':  # XXX
+                        self.tag_remove('RE_CARET',
+                                        head + '+{}c'.format(ar),
+                                        head + '+{}c'.format(br))
+
+                    self.tag_add(kr,
+                                    head + '+{}c'.format(ar),
+                                    head + '+{}c'.format(br))
+
+            mr = rprog.search(chars, mr.end())
+        else:
+            if mr:
+                for kr, vr in mr.groupdict().items():
+                    if vr:
+                        ar = mr.start(kr)
+                        if has_eos:
+                            br = m.end() - len(quot)
+                        else:
+                            br = m.end()
+
+##                            print kr, vr, ar, br, '^D'
+                        self.tag_remove('STRING',
+                                        head + '+{}c'.format(ar),
+                                        head + '+{}c'.format(br))
+                        if kr == 'RE_CHARS':  # XXX
+                            self.tag_remove('RE_CARET',
+                                            head + '+{}c'.format(ar),
+                                            head + '+{}c'.format(br))
+
+                        self.tag_add(kr,
+                                     head + '+{}c'.format(ar),
+                                     head + '+{}c'.format(br))
+
+##        rprog = regex.compile(r'\\.|(?P<KEYWORD>\[:[^:]+:\])')
+##        mr = rprog.search(chars, m.start())
+##        while mr and mr.end() <= m.end():
+##            for kr, vr in mr.groupdict().items():
+##                if vr:
+##                    ar, br = mr.span(kr)
+##                    self.tag_remove('STRING',
+##                                    head + '+{}c'.format(ar),
+##                                    head + '+{}c'.format(br))
+##                    self.tag_add(kr,
+##                                    head + '+{}c'.format(ar),
+##                                    head + '+{}c'.format(br))
+##
+##            mr = rprog.search(chars, mr.end())
+##        else:
+##            if mr:
+##                for kr, vr in mr.groupdict().items():
+##                    if vr:
+##                        ar = mr.start(kr)
+##                        if has_eos:
+##                            br = m.end() - 1
+##                        else:
+##                            br = m.end()
+##
+##                        self.tag_remove('STRING',
+##                                        head + '+{}c'.format(ar),
+##                                        head + '+{}c'.format(br))
+##                        self.tag_add(kr,
+##                                     head + '+{}c'.format(ar),
+##                                     head + '+{}c'.format(br))
 
     elif key == 'DEFINITION':
         i = 0
