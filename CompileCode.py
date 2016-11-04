@@ -7,11 +7,11 @@ from Tkinter import *
 from idlelib.configHandler import idleConf
 
 class CompileCode(object):
-    menudefs = [
-        ('run', [
-            ('Compile Code', '<<compile-code>>'),
-        ])
-    ]
+##    menudefs = [
+##        ('run', [
+##            ('Compile Code', '<<compile-code>>'),
+##        ])
+##    ]
 
     def __init__(self, editwin=None):
         self.editwin = editwin

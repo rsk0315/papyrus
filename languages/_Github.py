@@ -59,6 +59,7 @@ append_tags = {
     'NONASCIIC': {_f: GREY, _b: WHITE, 'font': ('Meiryo', 7)},
 ##    'NONASCIIB': {_f: GREY, _b: WHITE, 'font': ('Meiryo', 7, 'bold')},
     'NONASCIIB': {_f: GREY, _b: WHITE, 'font': ('Consolas', 10, 'bold')},
+    'IDENTIFIER': {_f: BLACK, _b: WHITE},
 }
 
 ##append_tags = dict(

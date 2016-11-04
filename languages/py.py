@@ -25,7 +25,7 @@ keyword_list = [
 operator_list = [
     r'!=',
     r'[-+*/%<>&|^~=`]',
-    r'[;:@]',
+    r'[,;:@]',
     r'\.\.\.',
 ]
 builtin_list = [

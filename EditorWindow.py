@@ -28,6 +28,8 @@ FILETYPES = {
     '.c': 'C/l',
     '.h': 'C/l',
     '.cpp': 'C++/l',
+    '.cs': 'Csharp/l',
+    '.java': 'Java/l',
     '.rb': 'Ruby',
     '.rbw': 'Ruby',
     '.md': 'Markdown',
@@ -47,6 +49,8 @@ EXTENSIONS = {
     'C++/l': ("C++ sources and headers", "*.cpp *.hpp", "TEXT"),
     'Python': ("Python files", "*.py *.pyw", "TEXT"),
     'C/l': ("C sources and headers", "*.c *.h", "TEXT"),
+    'Csharp/l': ("C# sources", "*.cs", "TEXT"),
+    'Java/l': ("Java sources", "*.java", "TEXT"),
     'HTML': ("HTML files", "*.html *.htm", "TEXT"),
     'Markdown': ('Markdown files', '*.md', 'TEXT'),
     'Ruby': ("Ruby files", "*.rb *.rbw", "TEXT"),
@@ -640,6 +644,11 @@ class EditorWindow(object):
                     variable=self.ftype, value='C/l', command=self.hilite_as('.c'))
                 menudict['highlight'].add_radiobutton(label='C++', underline=1,
                     variable=self.ftype, value='C++/l', command=self.hilite_as('.cpp'))
+                menudict['highlight'].add_radiobutton(label='C#', underline=1,
+                    variable=self.ftype, value='Csharp/l', command=self.hilite_as('.cs'))
+                menudict['highlight'].add_radiobutton(label='Java', underline=0,
+                    variable=self.ftype, value='Java/l', command=self.hilite_as('.java'))
+                
                 menudict['highlight'].add_radiobutton(label='Markdown', underline=4,
                     variable=self.ftype, value='Markdown', command=self.hilite_as('.md'))
                 menudict['highlight'].add_radiobutton(label='HTML', underline=0,

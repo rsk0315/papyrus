@@ -6,12 +6,6 @@ from Tkinter import *
 from tkMessageBox import *
 
 class EditSnippet(object):
-##    menudefs = [
-##        ('file', [
-##            ('Edit Snippet', '<<edit-snippet>>'),
-##        ])
-##    ]
-
     def __init__(self, editwin=None):
         self.editwin = editwin
         if editwin is None:
@@ -44,8 +38,15 @@ class EditSnippet(object):
             return
 
         path = self.complete_name(name)
-        if path is None:
-            return
+        idlelib_path = os.path.dirname(__file__)
+        snippet_path = os.path.join(idlelib_path, 'snippets')
+        if path is True:
+            path = os.path.join(snippet_path, name)
+            with open(path, 'w'):
+                # just make file
+                pass
+        elif path is False:
+            return None
 
         if self.editwin.flist:
             self.editwin.flist.open(path)
@@ -64,34 +65,22 @@ class EditSnippet(object):
                 and f.startswith(name)
             )
         ]
-##        print files
-
         self.path = ''
-##        if len(files) > 1:
-##            return None  # xxx
-##
-##            self.clist = clist = Toplevel(self.text)
-##            clist.title('Completion list')
-##
-##            for i, comp in enumerate(files):
-##                Radiobutton(
-##                    clist, text=comp, value=i, variable=self.n,
-##                ).pack(anchor='w')
-##
-##            Button(
-##                clist, text='Complete',
-##                command=lambda e=None: self._complete(clist, e),
-##            ).pack(anchor='w')
-##
-##            return None
 
         if not files:
-            showerror(
-                title='Cannot open snippet',
-                message='Please specify the file name.'
+##            showerror(
+##                title='Cannot open snippet',
+##                message='Please specify the file name.'
+##            )
+            q = askyesno(
+                title='Cannot specify the name',
+                message='Create the new file?'
             )
-            self.text.focus_set()
-            return None
+            if q:
+                return True
+            else:
+                self.text.focus_set()
+                return False
 
         self.path = files[0]
         return os.path.join(snippet_path, self.path)

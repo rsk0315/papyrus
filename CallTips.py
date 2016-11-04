@@ -79,7 +79,7 @@ class CallTips:
                     return
 
                 self.calltip = self._make_calltip_window()
-                print `self.text.index('insert-1c')`, `self.text.index('insert').split('.')[0]+'.end'`
+##                print `self.text.index('insert-1c')`, `self.text.index('insert').split('.')[0]+'.end'`
                 self.calltip.showtip(
                     arg_text,
                     self.text.index('insert-1c'),
@@ -104,7 +104,7 @@ class CallTips:
             if not arg_text:
                 # treat as constructor
                 lt = self.text.get('insert linestart', 'insert lineend')
-                print `lt`, 1
+##                print `lt`, 1
                 if re.match(r'^[ \t]', lt, flags=re.MULTILINE):
                     e = lt.lstrip().split()[0]
                     if e == 'string':

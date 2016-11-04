@@ -99,6 +99,8 @@ def make_pat(ext):
     else:
         misc = ''
 
+    nonascii = ur'(?P<NONASCII>[^\0-\x7f]+)'
+
     return unify(
         string,
         keyword,
@@ -106,6 +108,7 @@ def make_pat(ext):
         definition,
         builtin,
         misc,
+        nonascii,
         any('SYNC', [r'\n']),
     )
 
@@ -123,6 +126,11 @@ class ColorDelegator(Delegator):
                 self.read_twice = self.lang.read_twice
             else:
                 self.read_twice = None
+
+            self.more_decorate = {}
+            if hasattr(self.lang, 'more_decorate'):
+                self.more_decorate = self.lang.more_decorate
+
         except Exception as e:
             self.lang = None
             self.read_twice = None
@@ -325,13 +333,11 @@ class ColorDelegator(Delegator):
                 lines_to_get = min(lines_to_get * 2, 100)
                 ok = "SYNC" in self.tag_names(next + "-1c")
                 line = self.get(mark, next)
-                ##print head, "get", mark, next, "->", repr(line)
                 if not line:
                     return
                 for tag in self.tagdefs.keys():
                     self.tag_remove(tag, mark, next)
                 chars = chars + line
-##                print `chars`
                 self.next_start = 0
                 try:
                     m = self.prog.search(chars)
@@ -341,13 +347,18 @@ class ColorDelegator(Delegator):
                 p = 0
                 while m:
                     self.next_start = m.end()
-##                    print `m.group()`
                     for key, value in m.groupdict().items():
                         if value:
                             a, b = m.span(key)
                             self.tag_add(key,
                                          head + "+%dc" % a,
                                          head + "+%dc" % b)
+
+                            if key in self.more_decorate:
+                                self.more_decorate[key](
+                                    self, head, key, chars, m
+                                )
+
                             if self.read_twice:
                                 self.read_twice(
                                     self, head, key, value, chars, m
