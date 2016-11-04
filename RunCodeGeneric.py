@@ -81,7 +81,7 @@ class RunCodeGeneric(object):
         'C#':
             '{out}',
         'Java':
-            'java {root}',
+            'java -classpath {cpath} {root}',
     }
 
     def __init__(self, editwin=None):
@@ -379,6 +379,7 @@ class RunCodeGeneric(object):
 ##        exec_name = os.path.splitext(self.io.filename)[0]+'.exe'
         exec_name = RunCodeGeneric.EXECUTE_CMDS[self.lang.get()].format(
             out=self.io.filename,
+            cpath=os.path.dirname(self.io.filename),
             root=os.path.basename(os.path.splitext(self.io.filename)[0]),
         )
         print exec_name
