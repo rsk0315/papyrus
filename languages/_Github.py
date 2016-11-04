@@ -54,6 +54,11 @@ append_tags = {
     'RE_CARET': {_f: RED, _b: WHITE},
     'RE_CHARS': {_f: SKY, _b: WHITE},
     'RE_SPECIAL': {_f: GREEN, _b: WHITE},
+
+    'NONASCII': {'font': ('Meiryo', 7)},
+    'NONASCIIC': {_f: GREY, _b: WHITE, 'font': ('Meiryo', 7)},
+##    'NONASCIIB': {_f: GREY, _b: WHITE, 'font': ('Meiryo', 7, 'bold')},
+    'NONASCIIB': {_f: GREY, _b: WHITE, 'font': ('Consolas', 10, 'bold')},
 }
 
 ##append_tags = dict(

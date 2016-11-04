@@ -122,11 +122,17 @@ enable_shell=0
 compile_c=gcc -Wall -lm -O2 -o {0}.exe {0}.c
 compile_cpp=g++ -Wall -O2 -o {0}.exe {0}.cpp
 [CompileCode_cfgBindings]
-compile-code=<Key-F7>
+compile-code=<Key-F11>
 
 [DefaultExtension]
 enable=0
 defext=cpp
+
+[RunCodeGeneric]
+enable=1
+enable_shell=0
+[RunCodeGeneric_cfgBindings]
+run-code-generic=<Key-F7>
 
 [RunCode]
 enable=1

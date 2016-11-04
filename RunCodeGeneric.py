@@ -55,12 +55,34 @@ class tkPulldown(ttk.Combobox):
             state='readonly',
         )
 
-class RunCode(object):
+class RunCodeGeneric(object):
     menudefs = [
         ('run', [
-            ('Run Code (for C/C++)', '<<run-code>>'),
+            ('Run Code (Generic)', '<<run-code-generic>>'),
         ])
     ]
+
+    COMPILE_CMDS = {
+        'C':
+            'gcc -Wall -O2 --std=c11 -o {out} {in_}',
+        'C++':
+            'g++ -Wall -O2 --std=c++1y -o {out} {in_}',
+        'C#':
+            'mcs {in_}',
+        'Java':
+            'javac {in_}',
+    }
+
+    EXECUTE_CMDS = {
+        'C':
+            '{out}',
+        'C++':
+            '{out}',
+        'C#':
+            '{out}',
+        'Java':
+            'java {root}',
+    }
 
     def __init__(self, editwin=None):
         self.editwin = editwin
@@ -69,7 +91,7 @@ class RunCode(object):
 
         self.text = editwin.text
         self.io = editwin.io
-        self.text.bind('<<run-code>>', self.run_code)
+        self.text.bind('<<run-code-generic>>', self.run_code)
         self.subwin = None
 
         try:
@@ -133,21 +155,19 @@ class RunCode(object):
         wlf.pack(side='left', padx=4, pady=2, fill='x', anchor='n')
 
         ## * Standard options
-        stdlf = LabelFrame(optionbuttons, text='C/C++ Standards')
-        available_stds = [
-            '(default)',
-            'c89', 'c90', 'c99', 'c11',
-            'c++98', 'c++03', 'c++11', 'c++14', 'c++17',
+        langlf = LabelFrame(optionbuttons, text='Languages')
+        available_langs = [
+            'C', 'C++', 'C#', 'Java', 'Python',
         ]
 
-        self.cppstd = cppstd = tkPulldown(stdlf, available_stds, width=8)
-        Label(stdlf, text='--std=').pack(side='left', anchor='nw')
+        self.lang = lang = tkPulldown(langlf, available_langs, width=8)
+##        Label(stdlf, text='--std=').pack(side='left', anchor='nw')
 
-        cppstd.pack(side='right', anchor='w')
+        lang.pack(side='right', anchor='w')
 
         optionbuttons.pack(side='top')
 
-        stdlf.pack(side='right', padx=4, pady=2, fill='x')
+        langlf.pack(side='right', padx=4, pady=2, fill='x')
 
         ## * Button
         bframe = Frame(colf)
@@ -243,6 +263,7 @@ class RunCode(object):
     def run_code(self, event=None):
         try:
             self.subwin.focus_set()
+            self.stdin.focus_set()
         except (TclError, AttributeError):
             self._open_window()
 
@@ -267,43 +288,50 @@ class RunCode(object):
             except (AttributeError,):
                 return
 
-            std = self.cppstd.get()
+##            std = self.cppstd.get()
+##
+##            use_gcc = False
+##            if std == '(default)':
+##                if f in ('C/l',):
+##                    use_gcc = True
+##            elif '++' not in std:
+##                use_gcc = True
+##
+##            if use_gcc:
+##                cc = idleConf.GetOption('extensions', 'CompileCode', 'compile_c')
+####            elif f in ('C++/l',):
+##            else:  # xxx?
+##                cc = idleConf.GetOption('extensions', 'CompileCode', 'compile_cpp')
+##
+##            raw_name = os.path.splitext(self.io.filename)[0]
+##            cc = cc.format(raw_name)
+##            cc_ = ''
+##
+##            if std.startswith('('):
+##                pass
+##            elif std == 'ansi':
+##                cc_ = ' --ansi'
+##            else:
+##                cc_ = ' --std=' + std
+##
+##            if self.wall.get():
+##                cc_ += ' -Wall'
+##            if self.wextra.get():
+##                cc_ += ' -Wextra'
+##
+##            cc_ += ' ' + self.argv.get()
+##
+##            if re.search(r'\s?-E\b', cc_):
+##                cc = re.sub(r'-o [^ ]+', '', cc)
+##
+##            cc += cc_
 
-            use_gcc = False
-            if std == '(default)':
-                if f in ('C/l',):
-                    use_gcc = True
-            elif '++' not in std:
-                use_gcc = True
-
-            if use_gcc:
-                cc = idleConf.GetOption('extensions', 'CompileCode', 'compile_c')
-##            elif f in ('C++/l',):
-            else:  # xxx?
-                cc = idleConf.GetOption('extensions', 'CompileCode', 'compile_cpp')
-
-            raw_name = os.path.splitext(self.io.filename)[0]
-            cc = cc.format(raw_name)
-            cc_ = ''
-
-            if std.startswith('('):
-                pass
-            elif std == 'ansi':
-                cc_ = ' --ansi'
-            else:
-                cc_ = ' --std=' + std
-
-            if self.wall.get():
-                cc_ += ' -Wall'
-            if self.wextra.get():
-                cc_ += ' -Wextra'
-
-            cc_ += ' ' + self.argv.get()
-
-            if re.search(r'\s?-E\b', cc_):
-                cc = re.sub(r'-o [^ ]+', '', cc)
-
-            cc += cc_
+            src_name = self.io.filename
+            root = os.path.splitext(self.io.filename)[0]
+            cc = RunCodeGeneric.COMPILE_CMDS.get(self.lang.get()).format(
+                in_=src_name, out=root+'.exe'
+            )
+            print cc
 
             p = subprocess.Popen(
                 cc, shell=True,
@@ -348,9 +376,14 @@ class RunCode(object):
         if self.io.filename is None:
             return
 
-        exec_name = os.path.splitext(self.io.filename)[0]+'.exe'
-        if not os.path.isfile(exec_name):
-            return
+##        exec_name = os.path.splitext(self.io.filename)[0]+'.exe'
+        exec_name = RunCodeGeneric.EXECUTE_CMDS[self.lang.get()].format(
+            out=self.io.filename,
+            root=os.path.basename(os.path.splitext(self.io.filename)[0]),
+        )
+        print exec_name
+##        if not os.path.isfile(exec_name):
+##            return
 
         self.estatus.update(None)
         self.stdout.delete('1.0', 'end')
