@@ -230,13 +230,14 @@ def get_stmt_index(line, begin, end):
 
         end += 1
 
-    return (begin, end)
+    return (begin, end+1)
 
 QUALIFIERS = [
     # not treat as type names
     "const", "constexpr", "public", "private", "static", "typename", "virtual",
     "inline", "new", "delete", "return", "typedef", "goto", "using",
     r"(?:for|while|if)[ \t]*\(",
+##    r"[_A-Za-z]\w*[ \t]*::",
 ]
 
 QUALS = r'(?:\b(?:' + r'|'.join(QUALIFIERS) + r')\b)'
@@ -335,35 +336,120 @@ def is_decl(stmt, begin):
     if not following:
         return False
 
-    if following[0] in "+-/=%([<.>|^~!":
+    if following[0] in "+-/=%?([<.>|^~!":
         return False
     if following.startswith("* "):
         return False  # xxx int* a
     if following.startswith("& "):
         return False  # xxx int& a
 
-    next_id = IDENTIFIER_RE.search(stmt, pos=typename.end())
+    ID_NS_RE = regex.compile(ID_NS)
+    SMPL_ID_RE = regex.compile(r'(?:\b[_A-Za-z]\w*)')
+    next_id = SMPL_ID_RE.search(stmt, pos=typename.end())
+
+    while next_id is not None:
+        end = next_id.end()
+        if not stmt[end:].strip().startswith("::"):
+            break
+
+        next_id = SMPL_ID_RE.search(stmt, pos=end)
+
+    nth_id = 1
     while next_id is not None:
         if next_id.start() == begin:
+            end = next_id.end()
+
+            # hack
+            if nth_id == 1:
+                if end >= len(stmt):
+                    return False
+
+                if stmt[end] == ';':
+                    return True
+                elif stmt[end] == '\n':
+                    return False
+
+                pos = get_nextpos(stmt, end)
+                if pos is None:
+                    return True
+
+                if pos < len(stmt) and stmt[pos] == ',':
+                    next_id = ID_NS_RE.search(stmt, pos)
+                    if next_id is None:
+                        return True
+
+                    pos2 = next_id.end()
+                    if pos2 is None:
+                        return True
+
+                    if pos2 < len(stmt) and stmt[pos2]:
+                        next_id = ID_NS_RE.search(stmt, pos2)
+                        if next_id is None:
+                            return True
+
+                        if ',' not in stmt[pos2:next_id.start()]:
+                            return False
+
+            elif nth_id == 2:
+                end = next_id.end()
+                if end >= len(stmt):
+                    return True
+
+                if stmt[end:].strip().startswith('<'):
+                    return False
+
+                next_id = ID_NS_RE.search(stmt, end)
+                if next_id is None:
+                    return True
+
+                if ',' not in stmt[end:next_id.start()]:
+                    return False
+
+##            if len(stmt)-1 == end and stmt[end] == '\n':
+##                return False
+##
+##            next_id = SMPL_ID_RE.search(stmt, pos=next_id.end())
+##            if next_id is None:
+##                return True
+##
+##            nextstart = next_id.start()
+##            if ',' not in stmt[end:nextstart]:
+##                return False
+##
+##            end = next_id.end()
+##            next_id = SMPL_ID_RE.search(stmt, pos=end)
+##            if next_id is None:
+##                return True
+##
+##            if ',' not in stmt[end:next_id.start()]:
+##                return False
+
             return True
+
         if next_id.start() > begin:
             return False
 
         pos = get_nextpos(stmt, next_id.end())
-        next_id = IDENTIFIER_RE.search(stmt, pos)
+        next_id = ID_NS_RE.search(stmt, pos)
+        nth_id += 1
 
     return False
 
 def specify_tag(line, begin, end):
+    # xxx line may contains '\n'
     line = eat_quote(line)
     name = line[begin:end]
     if name.endswith("_t"):
         # type aliases, e.g. size_t
         return "BUILTIN"
 
-    if line[:begin].rstrip().endswith('}'):
-        # struct declaretions (maybe there are no conflictions)
-        return "DEFINITION"
+    cstmt = get_stmt_index(line, begin, end)
+    stmt = line.__getslice__(*cstmt)
+    len_ws = len(stmt) - len(stmt.lstrip())
+
+    if stmt[:begin].strip() == '}':
+            # struct declaretions (xxx conflictions)
+            return "DEFINITION"
 
     if end < len(line) and line[end] == '(':
         i = get_parenclose_index(line, end, "()")
@@ -375,28 +461,32 @@ def specify_tag(line, begin, end):
                 if nextchar[0] == '{':
                     # function definitions
                     si = get_stmt_index(line, begin, end)
+##                    print `line[si[0]:begin]`
                     if regex.search(
-                            r'\)[ \t]*:', line, pos=si[0], endpos=begin
+##                            r'\)[ \t]*:', line, pos=si[0], endpos=begin
+                        r'\)[ \t]*:', line, endpos=si[0],
                     ) is None:
                         return "DEFINITION"
                 elif nextchar[0] == ':':
-                    # constructor (with initialization) definitions
-                    return "DEFINITION"
-
-    cstmt = get_stmt_index(line, begin, end)
-    stmt = line.__getslice__(*cstmt)
-    len_ws = len(stmt) - len(stmt.lstrip())
+                    if begin-len_ws == cstmt[0]:
+                        # constructor (with initialization) definitions
+                        return "DEFINITION"
 
     if stmt.startswith("using"):
-        if '=' in stmt[:begin]:
+        if '=' in stmt[:begin-cstmt[0]]:
             return None
-        if '=' in stmt[begin:]:
+        else:
             return "DEFINITION"
 
-        if ':' not in stmt[begin:]:
+        if ':' not in stmt[begin-cstmt[0]:]:
             return "DEFINITION"
         else:
             return None
+
+    # ret_type func_name(
+    #     T arg1, U arg2, ... <- endswith ','
+    #     V argN              <- endswith '\n'
+    # ) {
 
     # hack
     if is_decl(stmt.lstrip(), begin-cstmt[0]-len_ws):
@@ -424,6 +514,11 @@ def deco_identifier(cdelegator, head, key, lchars, m):
         'IDENTIFIER', head+"{:+}c".format(a), head+"{:+}c".format(b)
     )
 
+##    begin, end = get_stmt_index(lchars, a, b)
+##    stmt = lchars[begin:end]
+##    len_ws = len(stmt) - len(stmt.lstrip())
+##
+##    new_tag = specify_tag(lchars[begin+len_ws:end], 0, end-(begin+len_ws))
     new_tag = specify_tag(lchars, a, b)
     if new_tag is None:
         return
