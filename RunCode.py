@@ -81,6 +81,7 @@ class RunCode(object):
         self.wextra = BooleanVar()
         self.addopts = StringVar()
         self.argv = StringVar()
+        self.cargv = BooleanVar()
 
         self.tl = StringVar(value=2)
         self.es = StringVar(value='')
@@ -115,7 +116,14 @@ class RunCode(object):
         )
         self.time_limit.pack(anchor='w')
 
-        tllf.pack(side='right', padx=14, pady=6)
+        cargvlf = LabelFrame(exlf, text="Pass arguments")
+        self.cuses_argv = Checkbutton(
+            cargvlf, variable=self.cargv, text="also to compiler",
+        )
+        self.cuses_argv.pack()
+        cargvlf.pack(side='left', padx=4)
+
+        tllf.pack(side='left', padx=9, pady=6)
 
         # --- Compilation ---
         coptframe = Frame(colf)
@@ -222,13 +230,26 @@ class RunCode(object):
         )
 
         # ---
-        frame.pack(side='top', fill='both')
+        frame.pack(side='top', fill='both', expand=True)
         self.stdin.focus_set()
 
 ##        self.subwin.resizable(0, 1)
 
 ##        size = lambda w: (w.winfo_height(), w.winfo_width())
 ##        print size(self.subwin)
+
+        if self.io.filename:
+##            self.stderr.insert("end", os.getcwd()+"--\n")
+            os.chdir(os.path.dirname(self.io.filename))
+##            p = subprocess.Popen(
+##                "pwd",
+####                "cd {}".format(os.path.dirname(self.io.filename)),
+##                stdin=subprocess.PIPE,
+##                stdout=subprocess.PIPE,
+##                stderr=subprocess.PIPE,
+##                shell=True,
+##            )
+##            self.stderr.insert("end", os.getcwd()+"++\n")
 
     def _close_window(self, event=None):
         def _close(window, event=None):
@@ -243,6 +264,7 @@ class RunCode(object):
     def run_code(self, event=None):
         try:
             self.subwin.focus_set()
+            self.stdin.focus_set()
         except (TclError, AttributeError):
             self._open_window()
 
@@ -298,7 +320,8 @@ class RunCode(object):
             if self.wextra.get():
                 cc_ += ' -Wextra'
 
-            cc_ += ' ' + self.argv.get()
+            if self.cargv.get():
+                cc_ += ' ' + self.argv.get()
 
             if re.search(r'\s?-E\b', cc_):
                 cc = re.sub(r'-o [^ ]+', '', cc)
