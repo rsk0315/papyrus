@@ -331,13 +331,9 @@ def is_decl(stmt, begin):
     if e >= len(stmt):
         return False
 
-##    print `typename.group()`
-
     following = stmt[e:].lstrip()
     if not following:
         return False
-
-##    print `following`
 
     if following.startswith("operator"):
         # hack
@@ -377,17 +373,22 @@ def is_decl(stmt, begin):
                     return False
 
                 pos = get_nextpos(stmt, end)
-                if pos is None:
+                if pos >= len(stmt):
                     return True
 
+##                print `pos, end`
                 if pos < len(stmt) and stmt[pos] == ',':
                     next_id = ID_NS_RE.search(stmt, pos)
                     if next_id is None:
                         return True
 
+##                    print `next_id.group()`
+
                     pos2 = next_id.end()
                     if pos2 is None:
                         return True
+
+                    pos2 = get_nextpos(stmt, pos2)
 
                     if pos2 < len(stmt) and stmt[pos2]:
                         next_id = ID_NS_RE.search(stmt, pos2)
@@ -405,31 +406,15 @@ def is_decl(stmt, begin):
                 if stmt[end:].strip().startswith('<'):
                     return False
 
+                end = get_nextpos(stmt, end)
+
                 next_id = ID_NS_RE.search(stmt, end)
                 if next_id is None:
                     return True
 
                 if ',' not in stmt[end:next_id.start()]:
+                    print `stmt[end:next_id.start()]`
                     return False
-
-##            if len(stmt)-1 == end and stmt[end] == '\n':
-##                return False
-##
-##            next_id = SMPL_ID_RE.search(stmt, pos=next_id.end())
-##            if next_id is None:
-##                return True
-##
-##            nextstart = next_id.start()
-##            if ',' not in stmt[end:nextstart]:
-##                return False
-##
-##            end = next_id.end()
-##            next_id = SMPL_ID_RE.search(stmt, pos=end)
-##            if next_id is None:
-##                return True
-##
-##            if ',' not in stmt[end:next_id.start()]:
-##                return False
 
             return True
 
@@ -446,6 +431,7 @@ def specify_tag(line, begin, end):
     # xxx line may contains '\n'
     line = eat_quote(line)
     name = line[begin:end]
+
     if name.endswith("_t"):
         # type aliases, e.g. size_t
         return "BUILTIN"
@@ -454,9 +440,13 @@ def specify_tag(line, begin, end):
     stmt = line.__getslice__(*cstmt)
     len_ws = len(stmt) - len(stmt.lstrip())
 
-    if stmt[:begin].strip() == '}':
-            # struct declaretions (xxx conflictions)
-            return "DEFINITION"
+    if stmt[:begin-cstmt[0]].strip() == '}':
+        # struct declaretions (xxx conflictions)
+        return "DEFINITION"
+
+    if line[:begin].strip().endswith(':'):
+        # range-based for
+        return None
 
     if end < len(line) and line[end] == '(':
         i = get_parenclose_index(line, end, "()")
@@ -496,6 +486,15 @@ def specify_tag(line, begin, end):
             return "DEFINITION"
         else:
             return None
+
+    if stmt.lstrip().startswith('#'):
+        m = regex.search(
+            r"^[ \t]*#[ \t]*define[ \t]*", line, pos=cstmt[0],
+            flags=regex.MULTILINE
+        )
+        if m is not None:
+            if m.end() == begin:
+                return "DEFINITION"
 
     # ret_type func_name(
     #     T arg1, U arg2, ... <- endswith ','
@@ -558,7 +557,26 @@ def deco_string(cdelegator, head, key, lchars, m):
 
         m_ = prog.search(lchars, m_.end())
 
+def deco_comment(cdelegator, head, key, lchars, m):
+    a, b = m.span(key)
+    prog = regex.compile(r"(?P<NONASCIIB>[^\0-~]+)")
+    m_ = prog.search(lchars, a)
+    while m_ is not None and m_.end() <= b:
+        for k, v in m_.groupdict().items():
+            if v:
+                a_, b_ = m_.span(k)
+                cdelegator.tag_remove(
+                    "LINE_COMMENT", head+"{:+}c".format(a_), head+"{:+}c".format(b_)
+                )
+                cdelegator.tag_add(
+                    k, head+"{:+}c".format(a_), head+"{:+}c".format(b_)
+                )
+
+        m_ = prog.search(lchars, m_.end())
+    
+
 more_decorate = {
     "IDENTIFIER": deco_identifier,
     "STRING": deco_string,
+    "LINE_COMMENT": deco_comment,
 }
