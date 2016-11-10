@@ -166,7 +166,7 @@ def get_parenclose_index(line, parenopen, paren):
         if not opened and i < len(line):
             return i
 
-    return None
+    return len(line)
 
 def get_quoteclose_index(line, quoteopen, quote):
     assert len(quote) == 1
@@ -191,7 +191,7 @@ def get_quoteclose_index(line, quoteopen, quote):
         if not opened and i < len(line):
             return i
 
-    return None
+    return len(line)
 
 def eat_quote(line):
     line = list(line)
@@ -256,7 +256,7 @@ ID_NS = r'(?:{0}{1}?::{1}?)*{0}'.format(
 ID_TP = r'(?:{0}(?:<(?:{0}(?:{1}?,{1}?{0})*)?{1}?>)?)'.format(ID_NS, WS)
 
 IDENTIFIER_RE = regex.compile(
-    r'(?:{0}(?:<(?:{1}(?:{2}?,{2}?{1})*)?{2}?>)?)'.format(
+    r'(?:{0}(?:<(?:{1}(?:{2}?,{2}?{1})*)?{2}?>)?(?:{2}?::{2}?[_A-Za-z]\w*)*)'.format(
         ID_NS, r'(?:'+ID_TP+r'[ \t*&]*)', WS,
     )
 )
@@ -285,10 +285,10 @@ def get_nextpos(stmt, pos):
     if stmt[pos] == ',':
         return pos
 
-    while pos is not None and pos < len(stmt) and stmt[pos] == '[':
+    while pos < len(stmt) and stmt[pos] == '[':
         pos = get_parenclose_index(stmt, pos, "[]")
 
-    if pos is None:
+    if pos is None or pos >= len(stmt):
         return len(stmt)
 
     if stmt[pos] == '=':
@@ -305,8 +305,7 @@ def get_nextpos(stmt, pos):
         else:
             return pos
 
-    else:
-        return len(stmt)
+    return pos
 
 def is_decl(stmt, begin):
     qualifiers = QUA_RE.match(stmt)
@@ -332,8 +331,16 @@ def is_decl(stmt, begin):
     if e >= len(stmt):
         return False
 
+##    print `typename.group()`
+
     following = stmt[e:].lstrip()
     if not following:
+        return False
+
+##    print `following`
+
+    if following.startswith("operator"):
+        # hack
         return False
 
     if following[0] in "+-/=%?([<.>|^~!":
@@ -460,13 +467,20 @@ def specify_tag(line, begin, end):
             if nextchar is not None:
                 if nextchar[0] == '{':
                     # function definitions
-                    si = get_stmt_index(line, begin, end)
-##                    print `line[si[0]:begin]`
-                    if regex.search(
-##                            r'\)[ \t]*:', line, pos=si[0], endpos=begin
-                        r'\)[ \t]*:', line, endpos=si[0],
-                    ) is None:
-                        return "DEFINITION"
+
+                    si = list(get_stmt_index(line, begin, end))
+
+                    len_ws2 = len(line[si[0]:]) - len(line[si[0]:].lstrip())
+                    si[0] += len_ws2
+                    m = IDENTIFIER_RE.search(line, pos=si[0], endpos=begin)
+                    if m:
+                        ln = get_parenclose_index(line, m.end(), "()")
+                        if ln < len(line):
+                            if line[ln:].lstrip().startswith(':'):
+                                return "BUILTIN"
+
+                    return "DEFINITION"
+
                 elif nextchar[0] == ':':
                     if begin-len_ws == cstmt[0]:
                         # constructor (with initialization) definitions
@@ -500,7 +514,7 @@ def specify_tag(line, begin, end):
 
         if line[end] == '<':
             i = get_parenclose_index(line, end, "<>")
-            if i is not None and line[i]=='(':
+            if i < len(line) and line[i]=='(':
                 # template functions declarations
                 return  "BUILTIN"
 
