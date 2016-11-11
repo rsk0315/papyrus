@@ -365,14 +365,17 @@ def is_decl(stmt, begin):
         # todo
         return False
 
-    next_id = IDENTIFIER_RE.search(stmt, pos=next_id.start())
+    ws = regex.match(
+        r"\s*", stmt[next_id.start():], flags=regex.MULTILINE
+    ).group()
+    next_id = IDENTIFIER_RE.match(stmt, pos=next_id.start()+len(ws))
 ##    print `stmt[next_id.start():]`
 ##    print `next_id and next_id.group()`
 
     nth_id = 1
     while next_id is not None and next_id.start() <= begin:
         end = next_id.end()
-##        print `next_id.group(), stmt[begin:], nth_id`
+##        print `stmt[begin:]`, nth_id
 
         # hack
         if nth_id == 1:
@@ -385,8 +388,8 @@ def is_decl(stmt, begin):
             if stmt[end] == '\n':
                 return False
 
-            if stmt[end] in ":(":
-                # range-based for, parameters
+            if stmt[end] in ":":
+                # range-based for
                 if next_id.start() != begin:
                     return False
 
@@ -408,12 +411,15 @@ def is_decl(stmt, begin):
                 if pos2 < len(stmt) and stmt[pos2]:
                     next_id2 = ID_NS_RE.search(stmt, pos2)
                     if next_id2 is None:
-                        return True
+                        if begin == next_id.start():
+                            return True
 
-                    if ',' not in stmt[pos2:next_id2.start()]:
-                        return False
+                    else:
+                        if ',' not in stmt[pos2:next_id2.start()]:
+                            return False
 
         elif nth_id == 2:
+##            print `next_id.group()`
             end = next_id.end()
             if end >= len(stmt):
                 return True
@@ -423,18 +429,24 @@ def is_decl(stmt, begin):
 
             end = get_nextpos(stmt, end)
 
-            next_id2 = ID_NS_RE.search(stmt, end)
+            ws = regex.match(r"[,\s*]*", stmt, pos=end).group()
+            next_id2 = ID_NS_RE.match(stmt, pos=end+len(ws))
             if next_id2 is None:
-                return True
-
-            if ',' not in stmt[end:next_id2.start()]:
-                return False
+                if next_id.start() == begin:
+                    return True
+            else:
+                if ',' not in stmt[end:next_id2.start()]:
+                    return False
 
         if next_id.start() == begin:
             return True
 
         pos = get_nextpos(stmt, next_id.end())
-        next_id = IDENTIFIER_RE.search(stmt, pos)
+##        next_id = IDENTIFIER_RE.search(stmt, pos)
+
+        ws = regex.match(r"[,\s]*", stmt, pos=pos, flags=regex.MULTILINE).group()
+##        print `stmt[pos+len(ws):]`, nth_id, `stmt[begin:]`
+        next_id = IDENTIFIER_RE.match(stmt, pos=pos+len(ws))
         nth_id += 1
 
     return False
