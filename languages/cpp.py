@@ -235,8 +235,8 @@ def get_stmt_index(line, begin, end):
 QUALIFIERS = [
     # not treat as type names
     "const", "constexpr", "public", "private", "static", "typename", "virtual",
-    "inline", "new", "delete", "return", "typedef", "goto", "using",
-    r"(?:for|while|if)[ \t]*\(",
+    "inline", "new", "delete", "return", "typedef", "goto", "using", "if",
+    r"(?:for|while)[ \t]*\(",
 ##    r"[_A-Za-z]\w*[ \t]*::",
 ]
 
@@ -324,6 +324,10 @@ def is_decl(stmt, begin):
         # not declaration statement
         return False
 
+##    print `typename.group(), stmt[begin:]`
+    if typename.group() in ("if", "else"):
+        return False
+
     if typename.start() == begin:
         return False
 
@@ -339,7 +343,7 @@ def is_decl(stmt, begin):
         # hack
         return False
 
-    if following[0] in "+-/=%?([<.>|^~!":
+    if following[0] in "+-/=%?([<.,>|^~!":
         return False
     if following.startswith("* "):
         return False  # xxx int* a
@@ -357,72 +361,80 @@ def is_decl(stmt, begin):
 
         next_id = SMPL_ID_RE.search(stmt, pos=end)
 
+    if next_id is None:
+        # todo
+        return False
+
+    next_id = IDENTIFIER_RE.search(stmt, pos=next_id.start())
+##    print `stmt[next_id.start():]`
+##    print `next_id and next_id.group()`
+
     nth_id = 1
-    while next_id is not None:
-        if next_id.start() == begin:
+    while next_id is not None and next_id.start() <= begin:
+        end = next_id.end()
+##        print `next_id.group(), stmt[begin:], nth_id`
+
+        # hack
+        if nth_id == 1:
+            if end >= len(stmt):
+                return False
+
+            if stmt[end] == ';':
+                return True
+
+            if stmt[end] == '\n':
+                return False
+
+            if stmt[end] in ":(":
+                # range-based for, parameters
+                if next_id.start() != begin:
+                    return False
+
+            pos = get_nextpos(stmt, end)
+            if pos >= len(stmt):
+                return True
+
+            if pos < len(stmt) and stmt[pos] == ',':
+                next_id2 = ID_NS_RE.search(stmt, pos)
+                if next_id2 is None:
+                    return True
+
+                pos2 = next_id2.end()
+                if pos2 is None:
+                    return True
+
+                pos2 = get_nextpos(stmt, pos2)
+
+                if pos2 < len(stmt) and stmt[pos2]:
+                    next_id2 = ID_NS_RE.search(stmt, pos2)
+                    if next_id2 is None:
+                        return True
+
+                    if ',' not in stmt[pos2:next_id2.start()]:
+                        return False
+
+        elif nth_id == 2:
             end = next_id.end()
+            if end >= len(stmt):
+                return True
 
-            # hack
-            if nth_id == 1:
-                if end >= len(stmt):
-                    return False
+            if stmt[end:].strip().startswith('<'):
+                return False
 
-                if stmt[end] == ';':
-                    return True
-                elif stmt[end] == '\n':
-                    return False
+            end = get_nextpos(stmt, end)
 
-                pos = get_nextpos(stmt, end)
-                if pos >= len(stmt):
-                    return True
+            next_id2 = ID_NS_RE.search(stmt, end)
+            if next_id2 is None:
+                return True
 
-##                print `pos, end`
-                if pos < len(stmt) and stmt[pos] == ',':
-                    next_id = ID_NS_RE.search(stmt, pos)
-                    if next_id is None:
-                        return True
+            if ',' not in stmt[end:next_id2.start()]:
+                return False
 
-##                    print `next_id.group()`
-
-                    pos2 = next_id.end()
-                    if pos2 is None:
-                        return True
-
-                    pos2 = get_nextpos(stmt, pos2)
-
-                    if pos2 < len(stmt) and stmt[pos2]:
-                        next_id = ID_NS_RE.search(stmt, pos2)
-                        if next_id is None:
-                            return True
-
-                        if ',' not in stmt[pos2:next_id.start()]:
-                            return False
-
-            elif nth_id == 2:
-                end = next_id.end()
-                if end >= len(stmt):
-                    return True
-
-                if stmt[end:].strip().startswith('<'):
-                    return False
-
-                end = get_nextpos(stmt, end)
-
-                next_id = ID_NS_RE.search(stmt, end)
-                if next_id is None:
-                    return True
-
-                if ',' not in stmt[end:next_id.start()]:
-                    print `stmt[end:next_id.start()]`
-                    return False
-
+        if next_id.start() == begin:
             return True
 
-        if next_id.start() > begin:
-            return False
-
         pos = get_nextpos(stmt, next_id.end())
-        next_id = ID_NS_RE.search(stmt, pos)
+        next_id = IDENTIFIER_RE.search(stmt, pos)
         nth_id += 1
 
     return False
@@ -445,13 +457,18 @@ def specify_tag(line, begin, end):
         return "DEFINITION"
 
     if line[:begin].strip().endswith(':'):
+        if line[end:].strip().startswith('('):
+            # initialization
+            return "BUILTIN"
+
         # range-based for
         return None
 
     if end < len(line) and line[end] == '(':
         i = get_parenclose_index(line, end, "()")
-        if i is not None:
-            nextchar = line[i:].lstrip()
+        if i is not None and i < len(line):
+##            nextchar = line[i:].lstrip()
+            nextchar = regex.sub(r"[ \t]*", "", line[i:])
             nextchar = nextchar[0] if nextchar else None
 
             if nextchar is not None:
@@ -515,7 +532,7 @@ def specify_tag(line, begin, end):
             i = get_parenclose_index(line, end, "<>")
             if i < len(line) and line[i]=='(':
                 # template functions declarations
-                return  "BUILTIN"
+                return "BUILTIN"
 
     if len(name) >= 2 and name.isupper():
         return "CONSTANT"
