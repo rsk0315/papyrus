@@ -370,8 +370,6 @@ def is_decl(stmt, begin):
     ).group()
     next_id = IDENTIFIER_RE.match(stmt, pos=next_id.start()+len(ws))
 ##    print `stmt[next_id.start():]`
-##    print `next_id and next_id.group()`
-
     nth_id = 1
     while next_id is not None and next_id.start() <= begin:
         end = next_id.end()
@@ -395,7 +393,10 @@ def is_decl(stmt, begin):
 
             pos = get_nextpos(stmt, end)
             if pos >= len(stmt):
-                return True
+                if next_id.start() == begin:
+                    return True
+
+                return False
 
             if pos < len(stmt) and stmt[pos] == ',':
                 next_id2 = ID_NS_RE.search(stmt, pos)
