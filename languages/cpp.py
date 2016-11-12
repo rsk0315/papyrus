@@ -173,7 +173,7 @@ def get_quoteclose_index(line, quoteopen, quote):
 
     i = quoteopen
     opened = False
-    escape = False
+    escaped = False
     while i < len(line):
         if opened:
             if escaped:
@@ -473,8 +473,9 @@ def specify_tag(line, begin, end):
             # initialization
             return "BUILTIN"
 
-        # range-based for
-        return None
+        if not line[:begin].strip().endswith("::"):
+            # range-based for
+            return None
 
     if end < len(line) and line[end] == '(':
         i = get_parenclose_index(line, end, "()")
@@ -506,15 +507,20 @@ def specify_tag(line, begin, end):
                         return "DEFINITION"
 
     if stmt.startswith("using"):
+        if stmt[5:].strip().startswith("namespace"):
+            # todo
+            return None
+
         if '=' in stmt[:begin-cstmt[0]]:
             return None
-        else:
-            return "DEFINITION"
 
-        if ':' not in stmt[begin-cstmt[0]:]:
-            return "DEFINITION"
-        else:
-            return None
+        if "::" in stmt[begin-cstmt[0]:]:
+            if end-cstmt[0] < len(stmt):
+##                print `stmt[end-cstmt[0]:]`
+                if stmt[end-cstmt[0]:].strip().startswith("::"):
+                    return None
+
+        return "DEFINITION"
 
     if stmt.lstrip().startswith('#'):
         m = regex.search(
