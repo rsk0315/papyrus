@@ -56,7 +56,8 @@ stl_class_list = [
     r'(?:BD|RA)?Iter',
     'pair', 'complex', 'bitset', 'iterator', 'string', 'tuple',
 
-    r'[iu](?:8|16|32|64)', r'f(?:32|64)', r'[_A-Za-z]\w*_t',
+    r'[iu](?:8|16|32|64)', r'f(?:32|64)',
+    # r'[_A-Za-z]\w*_t',
 ]
 
 stl_classes = [r'\b(?:' + r'|'.join(stl_class_list) + r')\b']
@@ -235,7 +236,7 @@ def get_stmt_index(line, begin, end):
 QUALIFIERS = [
     # not treat as type names
     "const", "constexpr", "public", "private", "static", "typename", "virtual",
-    "inline", "new", "delete", "return", "typedef", "goto", "using", "if",
+    "inline", "new", "delete", "typedef", "goto", "using", "if",
     r"(?:for|while)[ \t]*\(",
 ##    r"[_A-Za-z]\w*[ \t]*::",
 ]
@@ -248,7 +249,7 @@ QUA_RE = regex.compile(
 
 WS = r'(?:[ \t]+)'
 
-ID_NS = r'(?:{0}{1}?::{1}?)*{0}'.format(
+ID_NS = r'(?:\blong[ \t]+long\b|(?:{0}{1}?::{1}?)*{0})'.format(
     r'(?:\b[_A-Za-z]\w*)',
     WS
 )
@@ -325,7 +326,7 @@ def is_decl(stmt, begin):
         return False
 
 ##    print `typename.group(), stmt[begin:]`
-    if typename.group() in ("if", "else"):
+    if typename.group() in ("if", "else", "return"):
         return False
 
     if typename.start() == begin:
@@ -349,6 +350,9 @@ def is_decl(stmt, begin):
         return False  # xxx int* a
     if following.startswith("& "):
         return False  # xxx int& a
+
+    if following.startswith("*="):
+        return False  # xxx
 
     ID_NS_RE = regex.compile(ID_NS)
     SMPL_ID_RE = regex.compile(r'(?:\b[_A-Za-z]\w*)')
@@ -381,7 +385,8 @@ def is_decl(stmt, begin):
                 return False
 
             if stmt[end] == ';':
-                return True
+                if next_id.start() == begin:
+                    return True
 
             if stmt[end] == '\n':
                 return False
@@ -391,6 +396,11 @@ def is_decl(stmt, begin):
                 if next_id.start() != begin:
                     return False
 
+            if next_id.start() == begin and typename.group() == "struct":
+                # hack
+                if not stmt[end:].strip().startswith('{'):
+                    return False
+
             pos = get_nextpos(stmt, end)
             if pos >= len(stmt):
                 if next_id.start() == begin:
@@ -398,14 +408,20 @@ def is_decl(stmt, begin):
 
                 return False
 
-            if pos < len(stmt) and stmt[pos] == ',':
+            if pos < len(stmt) and stmt[pos] in ",;":
                 next_id2 = ID_NS_RE.search(stmt, pos)
                 if next_id2 is None:
-                    return True
+                    if next_id.start() == begin:
+                        return True
+
+                    return False  # todo
 
                 pos2 = next_id2.end()
                 if pos2 is None:
-                    return True
+                    if next_id.start() == begin:
+                        return True
+
+                    return False  # todo
 
                 pos2 = get_nextpos(stmt, pos2)
 
@@ -440,12 +456,21 @@ def is_decl(stmt, begin):
                     return False
 
         if next_id.start() == begin:
+            end = next_id.end()
+            if end < len(stmt):
+                if stmt[end:].strip()[:1] in "<>=!+-/^~%":
+                    # like i*i<=n
+                    return False
+
+            if stmt[:begin].strip()[:-1] in "=":
+                return False
+
             return True
 
         pos = get_nextpos(stmt, next_id.end())
 ##        next_id = IDENTIFIER_RE.search(stmt, pos)
 
-        ws = regex.match(r"[,\s]*", stmt, pos=pos, flags=regex.MULTILINE).group()
+        ws = regex.match(r"[,*&\s]*", stmt, pos=pos, flags=regex.MULTILINE).group()
 ##        print `stmt[pos+len(ws):]`, nth_id, `stmt[begin:]`
         next_id = IDENTIFIER_RE.match(stmt, pos=pos+len(ws))
         nth_id += 1
@@ -457,17 +482,18 @@ def specify_tag(line, begin, end):
     line = eat_quote(line)
     name = line[begin:end]
 
-    if name.endswith("_t"):
-        # type aliases, e.g. size_t
-        return "BUILTIN"
-
     cstmt = get_stmt_index(line, begin, end)
     stmt = line.__getslice__(*cstmt)
     len_ws = len(stmt) - len(stmt.lstrip())
 
-    if stmt[:begin-cstmt[0]].strip() == '}':
-        # struct declaretions (xxx conflictions)
-        return "DEFINITION"
+    if line[cstmt[0]:].strip().startswith('}'):
+        if not line[cstmt[0]:].strip(" \t}").startswith("else"):
+            # struct declaretions (xxx conflictions)
+            return "KEYWORD"
+
+    if name.endswith("_t"):
+        # type aliases, e.g. size_t
+        return "BUILTIN"
 
     if line[:begin].strip().endswith(':'):
         if line[end:].strip().startswith('('):

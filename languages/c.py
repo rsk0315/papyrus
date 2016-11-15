@@ -49,14 +49,15 @@ preprocessor = [
 ]
 
 stl_class_list = [
-    'vector', 'array', 'deque',
-    r'(?:forward_)?list', r'(?:unordered_)?(?:multi)?(?:set|map)',
-    'stack', r'(?:priority_)?queue', 'deque',
-    r'(?:Input|Output|Forward|Bidirectional|RandomAccess)Iterator',
-    r'(?:BD|RA)?Iter',
-    'pair', 'complex', 'bitset', 'iterator', 'string', 'tuple',
+##    'vector', 'array', 'deque',
+##    r'(?:forward_)?list', r'(?:unordered_)?(?:multi)?(?:set|map)',
+##    'stack', r'(?:priority_)?queue', 'deque',
+##    r'(?:Input|Output|Forward|Bidirectional|RandomAccess)Iterator',
+##    r'(?:BD|RA)?Iter',
+##    'pair', 'complex', 'bitset', 'iterator', 'string', 'tuple',
 
-    r'[iu](?:8|16|32|64)', r'f(?:32|64)', r'[_A-Za-z]\w*_t',
+    r'[iu](?:8|16|32|64)', r'f(?:32|64)',
+    # r'[_A-Za-z]\w*_t',
 ]
 
 stl_classes = [r'\b(?:' + r'|'.join(stl_class_list) + r')\b']
@@ -166,14 +167,14 @@ def get_parenclose_index(line, parenopen, paren):
         if not opened and i < len(line):
             return i
 
-    return None
+    return len(line)
 
 def get_quoteclose_index(line, quoteopen, quote):
     assert len(quote) == 1
 
     i = quoteopen
     opened = False
-    escape = False
+    escaped = False
     while i < len(line):
         if opened:
             if escaped:
@@ -191,7 +192,7 @@ def get_quoteclose_index(line, quoteopen, quote):
         if not opened and i < len(line):
             return i
 
-    return None
+    return len(line)
 
 def eat_quote(line):
     line = list(line)
@@ -230,13 +231,14 @@ def get_stmt_index(line, begin, end):
 
         end += 1
 
-    return (begin, end)
+    return (begin, end+1)
 
 QUALIFIERS = [
     # not treat as type names
     "const", "constexpr", "public", "private", "static", "typename", "virtual",
-    "inline", "new", "delete", "return", "typedef", "goto", "using",
-    r"(?:for|while|if)[ \t]*\(",
+    "inline", "new", "delete", "typedef", "goto", "using", "if",
+    r"(?:for|while)[ \t]*\(",
+##    r"[_A-Za-z]\w*[ \t]*::",
 ]
 
 QUALS = r'(?:\b(?:' + r'|'.join(QUALIFIERS) + r')\b)'
@@ -247,7 +249,7 @@ QUA_RE = regex.compile(
 
 WS = r'(?:[ \t]+)'
 
-ID_NS = r'(?:{0}{1}?::{1}?)*{0}'.format(
+ID_NS = r'(?:\blong[ \t]+long\b|(?:{0}{1}?::{1}?)*{0})'.format(
     r'(?:\b[_A-Za-z]\w*)',
     WS
 )
@@ -255,7 +257,7 @@ ID_NS = r'(?:{0}{1}?::{1}?)*{0}'.format(
 ID_TP = r'(?:{0}(?:<(?:{0}(?:{1}?,{1}?{0})*)?{1}?>)?)'.format(ID_NS, WS)
 
 IDENTIFIER_RE = regex.compile(
-    r'(?:{0}(?:<(?:{1}(?:{2}?,{2}?{1})*)?{2}?>)?)'.format(
+    r'(?:{0}(?:<(?:{1}(?:{2}?,{2}?{1})*)?{2}?>)?(?:{2}?::{2}?[_A-Za-z]\w*)*)'.format(
         ID_NS, r'(?:'+ID_TP+r'[ \t*&]*)', WS,
     )
 )
@@ -284,10 +286,10 @@ def get_nextpos(stmt, pos):
     if stmt[pos] == ',':
         return pos
 
-    while pos is not None and pos < len(stmt) and stmt[pos] == '[':
+    while pos < len(stmt) and stmt[pos] == '[':
         pos = get_parenclose_index(stmt, pos, "[]")
 
-    if pos is None:
+    if pos is None or pos >= len(stmt):
         return len(stmt)
 
     if stmt[pos] == '=':
@@ -304,8 +306,7 @@ def get_nextpos(stmt, pos):
         else:
             return pos
 
-    else:
-        return len(stmt)
+    return pos
 
 def is_decl(stmt, begin):
     qualifiers = QUA_RE.match(stmt)
@@ -324,6 +325,10 @@ def is_decl(stmt, begin):
         # not declaration statement
         return False
 
+##    print `typename.group(), stmt[begin:]`
+    if typename.group() in ("if", "else", "return"):
+        return False
+
     if typename.start() == begin:
         return False
 
@@ -335,68 +340,228 @@ def is_decl(stmt, begin):
     if not following:
         return False
 
-    if following[0] in "+-/=%([<.>|^~!":
+    if following.startswith("operator"):
+        # hack
+        return False
+
+    if following[0] in "+-/=%?([<.,>|^~!":
         return False
     if following.startswith("* "):
         return False  # xxx int* a
     if following.startswith("& "):
         return False  # xxx int& a
 
-    next_id = IDENTIFIER_RE.search(stmt, pos=typename.end())
+    if following.startswith("*="):
+        return False  # xxx
+
+    ID_NS_RE = regex.compile(ID_NS)
+    SMPL_ID_RE = regex.compile(r'(?:\b[_A-Za-z]\w*)')
+    next_id = SMPL_ID_RE.search(stmt, pos=typename.end())
+
     while next_id is not None:
+        end = next_id.end()
+        if not stmt[end:].strip().startswith("::"):
+            break
+
+        next_id = SMPL_ID_RE.search(stmt, pos=end)
+
+    if next_id is None:
+        # todo
+        return False
+
+    ws = regex.match(
+        r"\s*", stmt[next_id.start():], flags=regex.MULTILINE
+    ).group()
+    next_id = IDENTIFIER_RE.match(stmt, pos=next_id.start()+len(ws))
+##    print `stmt[next_id.start():]`
+    nth_id = 1
+    while next_id is not None and next_id.start() <= begin:
+        end = next_id.end()
+##        print `stmt[begin:]`, nth_id
+
+        # hack
+        if nth_id == 1:
+            if end >= len(stmt):
+                return False
+
+            if stmt[end] == ';':
+                if next_id.start() == begin:
+                    return True
+
+            if stmt[end] == '\n':
+                return False
+
+            if stmt[end] in ":":
+                # range-based for
+                if next_id.start() != begin:
+                    return False
+
+            if next_id.start() == begin and typename.group() == "struct":
+                # hack
+                if not stmt[end:].strip().startswith('{'):
+                    return False
+
+            pos = get_nextpos(stmt, end)
+            if pos >= len(stmt):
+                if next_id.start() == begin:
+                    return True
+
+                return False
+
+            if pos < len(stmt) and stmt[pos] in ",;":
+                next_id2 = ID_NS_RE.search(stmt, pos)
+                if next_id2 is None:
+                    if next_id.start() == begin:
+                        return True
+
+                    return False  # todo
+
+                pos2 = next_id2.end()
+                if pos2 is None:
+                    if next_id.start() == begin:
+                        return True
+
+                    return False  # todo
+
+                pos2 = get_nextpos(stmt, pos2)
+
+                if pos2 < len(stmt) and stmt[pos2]:
+                    next_id2 = ID_NS_RE.search(stmt, pos2)
+                    if next_id2 is None:
+                        if begin == next_id.start():
+                            return True
+
+                    else:
+                        if ',' not in stmt[pos2:next_id2.start()]:
+                            return False
+
+        elif nth_id == 2:
+##            print `next_id.group()`
+            end = next_id.end()
+            if end >= len(stmt):
+                return True
+
+            if stmt[end:].strip().startswith('<'):
+                return False
+
+            end = get_nextpos(stmt, end)
+
+            ws = regex.match(r"[,\s*]*", stmt, pos=end).group()
+            next_id2 = ID_NS_RE.match(stmt, pos=end+len(ws))
+            if next_id2 is None:
+                if next_id.start() == begin:
+                    return True
+            else:
+                if ',' not in stmt[end:next_id2.start()]:
+                    return False
+
         if next_id.start() == begin:
+            end = next_id.end()
+            if end < len(stmt):
+                if stmt[end:].strip()[:1] in "<>=!+-/^~%":
+                    # like i*i<=n
+                    return False
+
+            if stmt[:begin].strip()[:-1] in "=":
+                return False
+
             return True
-        if next_id.start() > begin:
-            return False
 
         pos = get_nextpos(stmt, next_id.end())
-        next_id = IDENTIFIER_RE.search(stmt, pos)
+##        next_id = IDENTIFIER_RE.search(stmt, pos)
+
+        ws = regex.match(r"[,*&\s]*", stmt, pos=pos, flags=regex.MULTILINE).group()
+##        print `stmt[pos+len(ws):]`, nth_id, `stmt[begin:]`
+        next_id = IDENTIFIER_RE.match(stmt, pos=pos+len(ws))
+        nth_id += 1
 
     return False
 
 def specify_tag(line, begin, end):
+    # xxx line may contains '\n'
     line = eat_quote(line)
     name = line[begin:end]
-    if name.endswith("_t"):
-        # type aliases, e.g. size_t
-        return "BUILTIN"
-
-    if line[:begin].rstrip().endswith('}'):
-        # struct declaretions (maybe there are no conflictions)
-        return "DEFINITION"
-
-    if end < len(line) and line[end] == '(':
-        i = get_parenclose_index(line, end, "()")
-        if i is not None:
-            nextchar = line[i:].lstrip()
-            nextchar = nextchar[0] if nextchar else None
-
-            if nextchar is not None:
-                if nextchar[0] == '{':
-                    # function definitions
-                    si = get_stmt_index(line, begin, end)
-                    if regex.search(
-                            r'\)[ \t]*:', line, pos=si[0], endpos=begin
-                    ) is None:
-                        return "DEFINITION"
-                elif nextchar[0] == ':':
-                    # constructor (with initialization) definitions
-                    return "DEFINITION"
 
     cstmt = get_stmt_index(line, begin, end)
     stmt = line.__getslice__(*cstmt)
     len_ws = len(stmt) - len(stmt.lstrip())
 
-    if stmt.startswith("using"):
-        if '=' in stmt[:begin]:
-            return None
-        if '=' in stmt[begin:]:
-            return "DEFINITION"
+    if line[cstmt[0]:].strip().startswith('}'):
+        if not line[cstmt[0]:].strip(" \t}").startswith("else"):
+            # struct declaretions (xxx conflictions)
+            return "KEYWORD"
 
-        if ':' not in stmt[begin:]:
-            return "DEFINITION"
-        else:
+    if name.endswith("_t"):
+        # type aliases, e.g. size_t
+        return "BUILTIN"
+
+    if line[:begin].strip().endswith(':'):
+        if line[end:].strip().startswith('('):
+            # initialization
+            return "BUILTIN"
+
+        if not line[:begin].strip().endswith("::"):
+            # range-based for
             return None
+
+    if end < len(line) and line[end] == '(':
+        i = get_parenclose_index(line, end, "()")
+        if i is not None and i < len(line):
+##            nextchar = line[i:].lstrip()
+            nextchar = regex.sub(r"[ \t]*", "", line[i:])
+            nextchar = nextchar[0] if nextchar else None
+
+            if nextchar is not None:
+                if nextchar[0] == '{':
+                    # function definitions
+
+                    si = list(get_stmt_index(line, begin, end))
+
+                    len_ws2 = len(line[si[0]:]) - len(line[si[0]:].lstrip())
+                    si[0] += len_ws2
+                    m = IDENTIFIER_RE.search(line, pos=si[0], endpos=begin)
+                    if m:
+                        ln = get_parenclose_index(line, m.end(), "()")
+                        if ln < len(line):
+                            if line[ln:].lstrip().startswith(':'):
+                                return "BUILTIN"
+
+                    return "DEFINITION"
+
+                elif nextchar[0] == ':':
+                    if begin-len_ws == cstmt[0]:
+                        # constructor (with initialization) definitions
+                        return "DEFINITION"
+
+    if stmt.startswith("using"):
+        if stmt[5:].strip().startswith("namespace"):
+            # todo
+            return None
+
+        if '=' in stmt[:begin-cstmt[0]]:
+            return None
+
+        if "::" in stmt[begin-cstmt[0]:]:
+            if end-cstmt[0] < len(stmt):
+##                print `stmt[end-cstmt[0]:]`
+                if stmt[end-cstmt[0]:].strip().startswith("::"):
+                    return None
+
+        return "DEFINITION"
+
+    if stmt.lstrip().startswith('#'):
+        m = regex.search(
+            r"^[ \t]*#[ \t]*define[ \t]*", line, pos=cstmt[0],
+            flags=regex.MULTILINE
+        )
+        if m is not None:
+            if m.end() == begin:
+                return "DEFINITION"
+
+    # ret_type func_name(
+    #     T arg1, U arg2, ... <- endswith ','
+    #     V argN              <- endswith '\n'
+    # ) {
 
     # hack
     if is_decl(stmt.lstrip(), begin-cstmt[0]-len_ws):
@@ -410,9 +575,9 @@ def specify_tag(line, begin, end):
 
         if line[end] == '<':
             i = get_parenclose_index(line, end, "<>")
-            if i is not None and line[i]=='(':
+            if i < len(line) and line[i]=='(':
                 # template functions declarations
-                return  "BUILTIN"
+                return "BUILTIN"
 
     if len(name) >= 2 and name.isupper():
         return "CONSTANT"
@@ -424,6 +589,11 @@ def deco_identifier(cdelegator, head, key, lchars, m):
         'IDENTIFIER', head+"{:+}c".format(a), head+"{:+}c".format(b)
     )
 
+##    begin, end = get_stmt_index(lchars, a, b)
+##    stmt = lchars[begin:end]
+##    len_ws = len(stmt) - len(stmt.lstrip())
+##
+##    new_tag = specify_tag(lchars[begin+len_ws:end], 0, end-(begin+len_ws))
     new_tag = specify_tag(lchars, a, b)
     if new_tag is None:
         return
@@ -449,7 +619,26 @@ def deco_string(cdelegator, head, key, lchars, m):
 
         m_ = prog.search(lchars, m_.end())
 
+def deco_comment(cdelegator, head, key, lchars, m):
+    a, b = m.span(key)
+    prog = regex.compile(r"(?P<NONASCIIB>[^\0-~]+)")
+    m_ = prog.search(lchars, a)
+    while m_ is not None and m_.end() <= b:
+        for k, v in m_.groupdict().items():
+            if v:
+                a_, b_ = m_.span(k)
+                cdelegator.tag_remove(
+                    "LINE_COMMENT", head+"{:+}c".format(a_), head+"{:+}c".format(b_)
+                )
+                cdelegator.tag_add(
+                    k, head+"{:+}c".format(a_), head+"{:+}c".format(b_)
+                )
+
+        m_ = prog.search(lchars, m_.end())
+    
+
 more_decorate = {
     "IDENTIFIER": deco_identifier,
     "STRING": deco_string,
+    "LINE_COMMENT": deco_comment,
 }
