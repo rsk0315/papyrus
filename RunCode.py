@@ -30,7 +30,15 @@ class ExitStatus(Entry):
             self.tvar.set('')
         else:
             if hasattr(p, 'returncode'):
-                self.tvar.set(str(p.returncode))
+##                self.tvar.set(str(p.returncode))
+                r = p.returncode
+                if r < 0:
+                    r += 2147483648
+
+                if r < 10:
+                    self.tvar.set(str(r))
+                else:
+                    self.tvar.set('0x{:X}'.format(r))
             else:
                 self.tvar.set('-')
 
@@ -196,6 +204,7 @@ class RunCode(object):
         )
 
         self.argve.bind('<Control-Key-Return>', self.execute)
+        self.argve.bind('<Control-Shift-Key-Return>', self.compile_)
         self.argve.bind('<Escape>', self._close_window)
 
         self.argve.pack(side='top', fill='both', expand=True)
@@ -218,7 +227,8 @@ class RunCode(object):
             font='Consolas 10', **kwargs
         )
         self.stdin.bind('<Control-Key-Return>', self.execute)
-        self.stdin.bind('<Shift-Key-Tab>', lambda e: self.addopte.focus_set)
+        self.stdin.bind('<Control-Shift-Key-Return>', self.compile_)
+##        self.stdin.bind('<Shift-Key-Tab>', lambda e: self.addopte.focus_set)
 
         self.stdout = StdIO(
             'Standard Output', self._close_window, frame, fg='white',
