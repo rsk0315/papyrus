@@ -309,7 +309,6 @@ def get_nextpos(stmt, pos):
     return pos
 
 def get_typename(stmt):
-##    print `stmt`
     if not stmt.strip():
         return None
 
@@ -331,7 +330,6 @@ def get_typename(stmt):
         m = SCOPED_ID.match(stmt, pos=idx)
 
     typename = stmt[:idx]
-##    print `typename`, -2
     lws = len(typename) - len(typename.lstrip())
     tws = len(typename) - len(typename.rstrip())
     pos = lws
@@ -339,7 +337,6 @@ def get_typename(stmt):
 
     ALL_MATCHES = regex.compile(r".+", flags=regex.DOTALL)
     # hack
-##    print `ALL_MATCHES.search(stmt, pos=pos, endpos=endpos).group()`, -1
     return ALL_MATCHES.search(stmt, pos=pos, endpos=endpos)
 
 def is_decl(stmt, begin):
@@ -354,14 +351,11 @@ def is_decl(stmt, begin):
     if begin == 0:
         return False
 
-##    get_typename(stmt)
-##    typename = IDENTIFIER_RE.match(stmt)
     typename = get_typename(stmt)
     if typename is None:
         # not declaration statement
         return False
 
-##    print `typename.group(), stmt[begin:]`
     if typename.group() in ("if", "else", "return"):
         return False
 
@@ -392,37 +386,25 @@ def is_decl(stmt, begin):
 
     ID_NS_RE = regex.compile(ID_NS)
     SMPL_ID_RE = regex.compile(r'(?:\b[_A-Za-z]\w*)')
-##    next_id = SMPL_ID_RE.search(stmt, pos=typename.end())
-    next_id = typename
 
-##    while next_id is not None:
-##        end = next_id.end()
-##        if not stmt[end:].strip().startswith("::"):
-##            break
-##
-##        next_id = SMPL_ID_RE.search(stmt, pos=end)
+    WHITESPACE_RE = regex.compile(r"[ \t&*]*")
+    whitespace = WHITESPACE_RE.match(stmt, typename.end())
 
+    next_id = IDENTIFIER_RE.match(stmt, pos=whitespace.end())
     if next_id is None:
-        # todo
         return False
 
-##    print `next_id.group()`
-
-##    ws = regex.match(
-##        r"\s*", stmt[next_id.start():], flags=regex.MULTILINE
-##    ).group()
-##    next_id = IDENTIFIER_RE.match(stmt, pos=next_id.start()+len(ws))
 ##    print `stmt[next_id.start():]`
     nth_id = 1
     while next_id is not None and next_id.start() <= begin:
         end = next_id.end()
-##        print `stmt[begin:]`, nth_id
 
         # hack
         if nth_id == 1:
             if end >= len(stmt):
                 return False
 
+##            print `stmt`, end
             if stmt[end] in ";=":
                 if next_id.start() == begin:
                     return True
@@ -475,7 +457,6 @@ def is_decl(stmt, begin):
                             return False
 
         elif nth_id == 2:
-##            print `next_id.group()`
             end = next_id.end()
             if end >= len(stmt):
                 return True
@@ -507,10 +488,8 @@ def is_decl(stmt, begin):
             return True
 
         pos = get_nextpos(stmt, next_id.end())
-##        next_id = IDENTIFIER_RE.search(stmt, pos)
 
         ws = regex.match(r"[,*&\s]*", stmt, pos=pos, flags=regex.MULTILINE).group()
-##        print `stmt[pos+len(ws):]`, nth_id, `stmt[begin:]`
         next_id = IDENTIFIER_RE.match(stmt, pos=pos+len(ws))
         nth_id += 1
 
@@ -582,7 +561,7 @@ def specify_tag(line, begin, end):
 
         if "::" in stmt[begin-cstmt[0]:]:
             if end-cstmt[0] < len(stmt):
-                print `stmt[end-cstmt[0]:]`
+##                print `stmt[end-cstmt[0]:]`
                 if stmt[end-cstmt[0]:].strip().startswith("::"):
                     return None
 
