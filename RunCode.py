@@ -42,7 +42,7 @@ class ExitStatus(Entry):
             else:
                 self.tvar.set('-')
 
-        print `self.tvar.get()`
+##        print `self.tvar.get()`
 
         status = self.tvar.get().strip()
 
@@ -333,8 +333,8 @@ class RunCode(object):
             if self.cargv.get():
                 cc_ += ' ' + self.argv.get()
 
-            if re.search(r'\s?-E\b', cc_):
-                cc = re.sub(r'-o [^ ]+', '', cc)
+            if re.search(r'\s?-\w*[ES]\w*\b', cc_):
+                cc = re.sub(r'-o [^ ]+', '-o -', cc)
 
             cc += cc_
 
