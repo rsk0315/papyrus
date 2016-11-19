@@ -44,7 +44,7 @@ preprocessor = [
     r'(?<=#[ \t]*){0}\b'.format(i) for i in [
         'include',  'define',   r'ifn?def', 'endif',    'if',       'elif',
         'else',     'error',    'warning',  'pragma',   'pragma once',
-        'pragma comment',
+        'pragma comment', 'undef',
     ]
 ]
 
@@ -489,7 +489,7 @@ def specify_tag(line, begin, end):
     if line[cstmt[0]:].strip().startswith('}'):
         if not line[cstmt[0]:].strip(" \t}").startswith("else"):
             # struct declaretions (xxx conflictions)
-            return "KEYWORD"
+            return "DEFINITION"
 
     if name.endswith("_t"):
         # type aliases, e.g. size_t

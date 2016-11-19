@@ -44,7 +44,7 @@ preprocessor = [
     r'(?<=#[ \t]*){0}\b'.format(i) for i in [
         'include',  'define',   r'ifn?def', 'endif',    'if',       'elif',
         'else',     'error',    'warning',  'pragma',   'pragma once',
-        'pragma comment',
+        'pragma comment', 'undef',
     ]
 ]
 
@@ -308,6 +308,40 @@ def get_nextpos(stmt, pos):
 
     return pos
 
+def get_typename(stmt):
+##    print `stmt`
+    if not stmt.strip():
+        return None
+
+    m = regex.search(r"\s*[_A-Za-z]\w*\s*", stmt)
+    if m is None:
+        return None
+
+    idx = m.end()
+
+    SCOPED_ID = regex.compile(r"::\s*[_A-Za-z]\w*\s*")
+    m = SCOPED_ID.match(stmt, pos=idx)
+    while m is not None:
+        idx = m.end()
+        if idx < len(stmt) and stmt[idx] == '<':
+            idx = get_parenclose_index(stmt, idx, "<>")
+            if idx >= len(stmt):
+                return None
+
+        m = SCOPED_ID.match(stmt, pos=idx)
+
+    typename = stmt[:idx]
+##    print `typename`, -2
+    lws = len(typename) - len(typename.lstrip())
+    tws = len(typename) - len(typename.rstrip())
+    pos = lws
+    endpos = idx-tws
+
+    ALL_MATCHES = regex.compile(r".+", flags=regex.DOTALL)
+    # hack
+##    print `ALL_MATCHES.search(stmt, pos=pos, endpos=endpos).group()`, -1
+    return ALL_MATCHES.search(stmt, pos=pos, endpos=endpos)
+
 def is_decl(stmt, begin):
     qualifiers = QUA_RE.match(stmt)
     if qualifiers is not None:
@@ -320,7 +354,9 @@ def is_decl(stmt, begin):
     if begin == 0:
         return False
 
-    typename = IDENTIFIER_RE.match(stmt)
+##    get_typename(stmt)
+##    typename = IDENTIFIER_RE.match(stmt)
+    typename = get_typename(stmt)
     if typename is None:
         # not declaration statement
         return False
@@ -356,23 +392,26 @@ def is_decl(stmt, begin):
 
     ID_NS_RE = regex.compile(ID_NS)
     SMPL_ID_RE = regex.compile(r'(?:\b[_A-Za-z]\w*)')
-    next_id = SMPL_ID_RE.search(stmt, pos=typename.end())
+##    next_id = SMPL_ID_RE.search(stmt, pos=typename.end())
+    next_id = typename
 
-    while next_id is not None:
-        end = next_id.end()
-        if not stmt[end:].strip().startswith("::"):
-            break
-
-        next_id = SMPL_ID_RE.search(stmt, pos=end)
+##    while next_id is not None:
+##        end = next_id.end()
+##        if not stmt[end:].strip().startswith("::"):
+##            break
+##
+##        next_id = SMPL_ID_RE.search(stmt, pos=end)
 
     if next_id is None:
         # todo
         return False
 
-    ws = regex.match(
-        r"\s*", stmt[next_id.start():], flags=regex.MULTILINE
-    ).group()
-    next_id = IDENTIFIER_RE.match(stmt, pos=next_id.start()+len(ws))
+##    print `next_id.group()`
+
+##    ws = regex.match(
+##        r"\s*", stmt[next_id.start():], flags=regex.MULTILINE
+##    ).group()
+##    next_id = IDENTIFIER_RE.match(stmt, pos=next_id.start()+len(ws))
 ##    print `stmt[next_id.start():]`
     nth_id = 1
     while next_id is not None and next_id.start() <= begin:
@@ -384,11 +423,11 @@ def is_decl(stmt, begin):
             if end >= len(stmt):
                 return False
 
-            if stmt[end] == ';':
+            if stmt[end] in ";=":
                 if next_id.start() == begin:
                     return True
 
-            if stmt[end] == '\n':
+            if stmt[end] in ")\n":
                 return False
 
             if stmt[end] in ":":
@@ -489,7 +528,7 @@ def specify_tag(line, begin, end):
     if line[cstmt[0]:].strip().startswith('}'):
         if not line[cstmt[0]:].strip(" \t}").startswith("else"):
             # struct declaretions (xxx conflictions)
-            return "KEYWORD"
+            return "DEFINITION"
 
     if name.endswith("_t"):
         # type aliases, e.g. size_t
@@ -543,7 +582,7 @@ def specify_tag(line, begin, end):
 
         if "::" in stmt[begin-cstmt[0]:]:
             if end-cstmt[0] < len(stmt):
-##                print `stmt[end-cstmt[0]:]`
+                print `stmt[end-cstmt[0]:]`
                 if stmt[end-cstmt[0]:].strip().startswith("::"):
                     return None
 
