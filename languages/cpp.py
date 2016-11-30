@@ -86,7 +86,17 @@ operator = [
     r'(?<!^\s*)#',
 ]
 
-definition = []
+definition = [
+    r'(?<=\boperator\b)\s*(?:' + r'|'.join(
+        [
+            r'(?:new|delete)(?:\[\])?',
+            r'(?:<<|>>|[<>=!*/%+\-&^|])=',
+            r'(?:\+\+|--|<<|>>|\&\&|\|\||\(\)|\[\])',
+            r'->\*?',
+            r'[~!*/%+\-<>&^|=,]',
+        ]
+    ) + r')(?=[ \t]*\()',
+]
 
 identifier = (
     r'\b[_A-Za-z]\w*',
@@ -98,7 +108,7 @@ comment = [
 ]
 
 freq_used_val = [
-    r'\b(?:true|false)\b'
+    r'\b(?:true|false|this)\b'
 ]
 
 KEYWORD = (
@@ -115,16 +125,16 @@ STRING = any('STRING', string)
 DEFINITION = (
     any('DEFINITION', definition)
 )
-SP_VARIABLE = r'(?P<SP_VARIABLE>\bthis\b)'
+##SP_VARIABLE = r'(?P<SP_VARIABLE>\bthis\b)'
 
 IDENTIFIER = any('IDENTIFIER', identifier)
 MISC = r'|'.join(
     [
-        SP_VARIABLE,
+##        SP_VARIABLE,
         IDENTIFIER,
         r'(?P<SHARP>#)',
         r'(?P<PUNC>[(){}[\]])',
-        ur'(?P<ERROR>\u3000)',
+        ur'(?P<ERROR>\u3000+)',
     ]
 )
 
@@ -312,11 +322,15 @@ def get_typename(stmt):
     if not stmt.strip():
         return None
 
-    m = regex.search(r"\s*[_A-Za-z]\w*\s*", stmt)
+    m = regex.search(r"\s*(?:long\s+long|[_A-Za-z]\w*)\s*", stmt)
     if m is None:
         return None
 
     idx = m.end()
+    if idx < len(stmt) and stmt[idx] == '<':
+        idx = get_parenclose_index(stmt, idx, "<>")
+        if idx >= len(stmt):
+            return None
 
     SCOPED_ID = regex.compile(r"::\s*[_A-Za-z]\w*\s*")
     m = SCOPED_ID.match(stmt, pos=idx)
@@ -388,13 +402,27 @@ def is_decl(stmt, begin):
     SMPL_ID_RE = regex.compile(r'(?:\b[_A-Za-z]\w*)')
 
     WHITESPACE_RE = regex.compile(r"[ \t&*]*")
-    whitespace = WHITESPACE_RE.match(stmt, typename.end())
+    whitespace = WHITESPACE_RE.match(stmt, pos=typename.end())
 
-    next_id = IDENTIFIER_RE.match(stmt, pos=whitespace.end())
+    next_id = SMPL_ID_RE.match(stmt, pos=whitespace.end())
     if next_id is None:
         return False
 
-##    print `stmt[next_id.start():]`
+    TO_EAT = regex.compile(r"[,*& \t]*")
+    while next_id is not None and next_id.end() < len(stmt):
+        pos = next_id.end()
+        m = regex.match(r"\s*::", stmt, pos=pos)
+        if m is None:
+            break
+
+        pos = m.end()
+        ws = TO_EAT.match(stmt, pos=pos).group()
+        tmp = SMPL_ID_RE.match(stmt, pos=pos+len(ws))
+        if tmp is None:
+            break
+
+        next_id = tmp
+
     nth_id = 1
     while next_id is not None and next_id.start() <= begin:
         end = next_id.end()
@@ -404,7 +432,6 @@ def is_decl(stmt, begin):
             if end >= len(stmt):
                 return False
 
-##            print `stmt`, end
             if stmt[end] in ";=":
                 if next_id.start() == begin:
                     return True
@@ -417,10 +444,13 @@ def is_decl(stmt, begin):
                 if next_id.start() != begin:
                     return False
 
-            if next_id.start() == begin and typename.group() == "struct":
-                # hack
-                if not stmt[end:].strip().startswith('{'):
-                    return False
+            if typename.group() == "struct":
+##                nth_id -= 1
+                if next_id.start() == begin:
+                    # hack
+                    following = stmt[end:].strip()[:1]
+                    if following and not following in ":{":
+                        return False
 
             pos = get_nextpos(stmt, end)
             if pos >= len(stmt):
@@ -430,6 +460,9 @@ def is_decl(stmt, begin):
                 return False
 
             if pos < len(stmt) and stmt[pos] in ",;":
+                if regex.compile(r",[ \t]*\n").match(stmt, pos=pos):
+                    return False
+
                 next_id2 = ID_NS_RE.search(stmt, pos)
                 if next_id2 is None:
                     if next_id.start() == begin:
@@ -478,9 +511,11 @@ def is_decl(stmt, begin):
         if next_id.start() == begin:
             end = next_id.end()
             if end < len(stmt):
-                if stmt[end:].strip()[:1] in "<>=!+-/^~%":
+                if stmt[end:].strip()[:1] in "<>!+-/^~%":
                     # like i*i<=n
                     return False
+                elif stmt[end:].strip()[:1] in "=":
+                    return True
 
             if stmt[:begin].strip()[:-1] in "=":
                 return False
@@ -489,8 +524,30 @@ def is_decl(stmt, begin):
 
         pos = get_nextpos(stmt, next_id.end())
 
-        ws = regex.match(r"[,*&\s]*", stmt, pos=pos, flags=regex.MULTILINE).group()
-        next_id = IDENTIFIER_RE.match(stmt, pos=pos+len(ws))
+        # todo eating commas should be more careful
+##        ws = regex.match(r"[,*&\s]*", stmt, pos=pos, flags=regex.MULTILINE).group()
+##        next_id = IDENTIFIER_RE.match(stmt, pos=pos+len(ws))
+##        nth_id += 1
+
+##        TO_EAT = regex.compile(r"[,*& \t]*")
+        ws = TO_EAT.match(stmt, pos=pos).group()
+        next_id = SMPL_ID_RE.match(stmt, pos=pos+len(ws))
+        while next_id is not None and next_id.end() < len(stmt):
+            pos = next_id.end()
+            m = regex.match(r"\s*::", stmt, pos=pos)
+            if m is None:
+                break
+
+            pos = m.end()
+
+            ws = TO_EAT.match(stmt, pos=pos).group()
+            tmp = SMPL_ID_RE.match(stmt, pos=pos+len(ws))
+            if tmp is None:
+                break
+
+            next_id = tmp
+
+
         nth_id += 1
 
     return False
@@ -514,18 +571,17 @@ def specify_tag(line, begin, end):
         return "BUILTIN"
 
     if line[:begin].strip().endswith(':'):
-        if line[end:].strip().startswith('('):
-            # initialization
-            return "BUILTIN"
-
         if not line[:begin].strip().endswith("::"):
+            if line[end:].strip().startswith('('):
+                # initialization
+                return "BUILTIN"
+
             # range-based for
             return None
 
     if end < len(line) and line[end] == '(':
         i = get_parenclose_index(line, end, "()")
         if i is not None and i < len(line):
-##            nextchar = line[i:].lstrip()
             nextchar = regex.sub(r"[ \t]*", "", line[i:])
             nextchar = nextchar[0] if nextchar else None
 
@@ -551,8 +607,8 @@ def specify_tag(line, begin, end):
                         # constructor (with initialization) definitions
                         return "DEFINITION"
 
-    if stmt.startswith("using"):
-        if stmt[5:].strip().startswith("namespace"):
+    if stmt.lstrip().startswith("using"):
+        if stmt[len_ws+5:].strip().startswith("namespace"):
             # todo
             return None
 
@@ -561,7 +617,6 @@ def specify_tag(line, begin, end):
 
         if "::" in stmt[begin-cstmt[0]:]:
             if end-cstmt[0] < len(stmt):
-##                print `stmt[end-cstmt[0]:]`
                 if stmt[end-cstmt[0]:].strip().startswith("::"):
                     return None
 
