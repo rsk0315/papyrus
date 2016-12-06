@@ -71,6 +71,8 @@ class RunCodeGeneric(object):
             'mcs {in_}',
         'Java':
             'javac {in_}',
+        'Haskell':
+            'ghc -Wall -o {out} {in_}',
     }
 
     EXECUTE_CMDS = {
@@ -82,6 +84,8 @@ class RunCodeGeneric(object):
             '{out}',
         'Java':
             'java -classpath {cpath} {root}',
+        'Haskell':
+            '{out}',
     }
 
     def __init__(self, editwin=None):
@@ -157,7 +161,7 @@ class RunCodeGeneric(object):
         ## * Standard options
         langlf = LabelFrame(optionbuttons, text='Languages')
         available_langs = [
-            'C', 'C++', 'C#', 'Java', 'Python',
+            'C', 'C++', 'C#', 'Python', 'Java', 'Haskell',
         ]
 
         self.lang = lang = tkPulldown(langlf, available_langs, width=8)
@@ -230,6 +234,7 @@ class RunCodeGeneric(object):
             font='Consolas 10', **kwargs
         )
         self.stdin.bind('<Control-Key-Return>', self.execute)
+        self.stdin.bind('<Control-Shift-Key-Return>', self.compile_)
         self.stdin.bind('<Shift-Key-Tab>', lambda e: self.addopte.focus_set)
 
         self.stdout = StdIO(
@@ -376,13 +381,13 @@ class RunCodeGeneric(object):
         if self.io.filename is None:
             return
 
-##        exec_name = os.path.splitext(self.io.filename)[0]+'.exe'
-        exec_name = RunCodeGeneric.EXECUTE_CMDS[self.lang.get()].format(
-            out=self.io.filename,
+        exec_name = os.path.splitext(self.io.filename)[0]+'.exe'
+        exec_cmd = RunCodeGeneric.EXECUTE_CMDS[self.lang.get()].format(
+            out=exec_name,
             cpath=os.path.dirname(self.io.filename),
             root=os.path.basename(os.path.splitext(self.io.filename)[0]),
         )
-        print exec_name
+##        print exec_name
 ##        if not os.path.isfile(exec_name):
 ##            return
 

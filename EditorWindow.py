@@ -30,6 +30,7 @@ FILETYPES = {
     '.cpp': 'C++/l',
     '.cs': 'Csharp/l',
     '.java': 'Java/l',
+    '.hs': 'Haskell',
     '.rb': 'Ruby',
     '.rbw': 'Ruby',
     '.md': 'Markdown',
@@ -51,6 +52,7 @@ EXTENSIONS = {
     'C/l': ("C sources and headers", "*.c *.h", "TEXT"),
     'Csharp/l': ("C# sources", "*.cs", "TEXT"),
     'Java/l': ("Java sources", "*.java", "TEXT"),
+    'Haskell': ("Haskell sources", "*.hs", "TEXT"),
     'HTML': ("HTML files", "*.html *.htm", "TEXT"),
     'Markdown': ('Markdown files', '*.md', 'TEXT'),
     'Ruby': ("Ruby files", "*.rb *.rbw", "TEXT"),
@@ -531,13 +533,7 @@ class EditorWindow(object):
     def set_xxx_bar(self):
         self.xxx_bar = self.XXXBar(self.top, self, bg='#ffffff')
         sep = Frame(self.top, height=1, borderwidth=1, background='grey75')
-##        sep = Frame(self.top, height=1, borderwidth=1, background='white')
 
-##        self.xxx_bar.set_label(
-##            'xxx',
-##            " IDLE arranged by @rsk0315_h4x",
-##            side=LEFT, font='Consolas 10', bg='white'
-##        )
         self.xxx_bar.pack(side=BOTTOM, fill=X)
         sep.pack(side=BOTTOM, fill=X)
 
@@ -574,8 +570,6 @@ class EditorWindow(object):
         try:
             f = self.ftype.get()
         except AttributeError:
-##            self.ftype = StringVar()
-##            self.ftype.set('Python')
             f = 'Python'
 
         self.mode_bar.set_label(
@@ -646,12 +640,14 @@ class EditorWindow(object):
                     variable=self.ftype, value='C++/l', command=self.hilite_as('.cpp'))
                 menudict['highlight'].add_radiobutton(label='C#', underline=1,
                     variable=self.ftype, value='Csharp/l', command=self.hilite_as('.cs'))
+                menudict['highlight'].add_radiobutton(label='Haskell', underline=0,
+                    variable=self.ftype, value='Haskell', command=self.hilite_as('.hs'))
                 menudict['highlight'].add_radiobutton(label='Java', underline=0,
                     variable=self.ftype, value='Java/l', command=self.hilite_as('.java'))
-                
+
                 menudict['highlight'].add_radiobutton(label='Markdown', underline=4,
                     variable=self.ftype, value='Markdown', command=self.hilite_as('.md'))
-                menudict['highlight'].add_radiobutton(label='HTML', underline=0,
+                menudict['highlight'].add_radiobutton(label='HTML', underline=2,
                     variable=self.ftype, value='HTML', command=self.hilite_as('.html'))
                 menudict['highlight'].add_radiobutton(label='Ruby', underline=0,
                     variable=self.ftype, value='Ruby', command=self.hilite_as('.rb'))
@@ -670,13 +666,7 @@ class EditorWindow(object):
         try:
             if 'develop' in menudict:
                 _idle_path = os.path.dirname(__file__)
-##                _my_dev_files = [
-##                    ('AutoComplete', 0),
-##                    ('Bindings', 0),
-##                    ('ColorDelegator', 0),
-##                    ('EditorWindow', 0), 
-##                    ('languages\\cpp', 11),
-##                ]
+
                 fileopen = lambda fn: self.io.open(editFile=os.path.join(_idle_path, fn+'.py'))
 
                 menudict['develop'].add_command(
@@ -702,133 +692,12 @@ class EditorWindow(object):
                 menudict['develop'].add_command(
                     label='configExtensions', underline=7, command=lambda: self.io.open(editFile=os.path.join(_idle_path, 'config-extensions.def')))
 
-##                for fn, ul in _my_dev_files:
-##                    print fn, ul
-##                    menudict['develop'].add_command(
-##                        label=fn, underline=ul,
-##                        command=lambda: self.io.open(
-##                            editFile=os.path.join(_idle_path, fn+'.py')
-##                        )
-##                    )
         except (AttributeError, KeyError) as e:
             pass
-
-##        menudict['edit'].add_separator()
-##        menudict['edit'].add_command(
-##            label='Insert template', underline=7, command=self.insert_template
-##        )
 
         self.fill_menus()
         self.base_helpmenu_length = self.menudict['help'].index(END)
         self.reset_help_menu_entries()
-
-##    def insert_template(self, event=None):
-##        if not hasattr(self, 'ext'):
-##            return 1
-##
-##        template_text = ''
-##
-##        # TODO; create .def files and get path from them
-##        idlelib_path = os.path.dirname(__file__)
-##        template_file = '{}/templates/{}.tpl'.format(idlelib_path, self.ext[1:])
-##        try:
-##            with open(template_file, 'r') as fin:
-##                template_text = fin.read()
-##        except:
-##            pass
-##
-##        self.text.insert('1.0', template_text)
-
-##    def compile_code(self, event=None):
-##        if not hasattr(self.io, 'filename') or self.io.filename is None:
-##            return 1
-##
-##        if self.ext in ('.c', '.h'):
-##            compiler = 'gcc'
-##        elif self.ext in ('.cpp', '.hpp'):
-##            compiler = 'g++'
-##        else:
-##            return 1
-##
-##        exec_name = os.path.splitext(self.io.filename)[0]+'.exe'
-##        basename = os.path.basename(self.io.filename)
-##        args = [compiler, '-O2', '-Wall', '-o', exec_name, self.io.filename]
-##        if self.ext in ('.c', '.h'):
-##            args += ['-lm']  # todo?
-##
-##        import subprocess
-##        sp = subprocess.Popen(
-##            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-##        )
-##        compile_failed = sp.wait()
-##        compile_message = sp.communicate()[1]  # stderr
-##        compile_message = re.sub(
-##            r'^{}:'.format(self.io.filename.replace('\\', r'\\')),
-##            basename+':',
-##            compile_message,
-##            flags=re.M,
-##        )  # XXX
-##
-##        if not compile_message:
-##            tkMessageBox.showinfo(
-##                parent=self.text,
-##                title=compiler,
-##                message='Compilation succeeded.',
-##            )
-##            return 0
-##
-##        import ScrolledText
-##        sub_win = Toplevel(self.text)
-##
-##        if compile_failed:
-##            title = 'Compilation failed'
-##        else:
-##            title = 'Compilation succeeded (with warning)'
-##
-##        sub_win.title(title)
-##
-##        ce = ScrolledText.ScrolledText(
-##            sub_win, width=80, fg='white', bg='black', font='Consolas 10',
-##        )
-##        def close_(w, event=None):
-##            w.grab_release()
-##            w.withdraw()
-##
-##        ce.bind('<Escape>', lambda event: close_(sub_win, event))
-##        ce.pack(fill='both', expand=True)
-##        ce.insert('1.0', compile_message)
-##        ce.focus_set()
-
-
-##    def code_snippet(self, event=None):
-##        curline = self.text.get('insert linestart', 'insert')
-##        query = curline.strip()
-##        if re.search(r'[ \t]|^$', query):
-##            return
-##
-##        indent = re.search(r'[ \t]*', curline).group()
-##
-##        idlelib_path = os.path.dirname(__file__)
-##        snippet_files = os.listdir(os.path.join(idlelib_path, 'snippets'))
-##        if hasattr(self, 'ext'):
-##            ext = self.ext or ''
-##        else:
-##            ext = ''
-##
-##        snippet = ''
-##        if query+ext in snippet_files:
-##            snippet = open(os.path.join(idlelib_path, 'snippets', query+ext)).read()
-##            if indent:
-##                snippet = ('\n'+indent).join(re.split(r'[\r\n]', snippet))
-##        elif any([s for s in snippet_files if s.startswith(query)]):
-##            # todo for auto-completion
-##            return
-##        else:
-##            return
-##
-##        self.text.delete('insert linestart', 'insert lineend')
-##        self.text.insert('insert linestart', indent+snippet)
-
 
     def postwindowsmenu(self):
         # Only called when Windows menu exists
