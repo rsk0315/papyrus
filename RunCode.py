@@ -52,10 +52,10 @@ class ExitStatus(Entry):
             self.configure(bg='#c00000', fg='#fad2dc')
 
 class tkPulldown(ttk.Combobox):
-    def __init__(self, parent, values, **kwargs):
+    def __init__(self, parent, values, init=0, **kwargs):
         ttk.Combobox.__init__(self, parent, **kwargs)
         self['values'] = values
-        self.current(0)
+        self.current(init)
         self.grid(row=0, column=0, columnspan=10)
         self.configure(
             state='readonly',
@@ -97,6 +97,15 @@ class RunCode(object):
         'Python3':
             'py -3 {in_}',
     }
+
+    MESSAGE_TAGS = {
+        'Note':
+            {'foreground': '#55FFFF', 'font': ('Consolas', 10, 'bold')},
+        'Warning':
+            {'foreground': '#FF55FF', 'font': ('Consolas', 10, 'bold')},
+        'Error':
+            {'foreground': '#FE5454', 'font': ('Consolas', 10, 'bold')},
+    }    
 
     def __init__(self, editwin=None):
         self.editwin = editwin
@@ -184,7 +193,7 @@ class RunCode(object):
             'Python2', 'Python3',
         ]
 
-        self.lang = tkPulldown(langlf, available_langs, width=8)
+        self.lang = tkPulldown(langlf, available_langs, init=3, width=8)
         self.lang.pack(side='right', anchor='w')
         optionbuttons.pack(side='top')
 
@@ -270,6 +279,22 @@ class RunCode(object):
         msg = '{}: {}\n'.format(level, msg)
         self.stderr.insert(pos, msg)
 
+        if level not in RunCode.MESSAGE_TAGS:
+            return
+
+        if pos != 'end':
+            self.stderr.tag_add(
+                level, pos, pos+'{:+}c'.format(len(level))
+            )
+        else:
+            self.stderr.tag_add(
+                level,
+                'end-{}c'.format(len(msg)+1),
+                'end{:-}c'.format(-len(msg)+len(level)-1)
+            )
+        val = RunCode.MESSAGE_TAGS[level]
+        self.stderr.tag_configure(level, **val)
+
     def run_code(self, event=None):
         try:
             self.subwin.focus_set()
@@ -278,6 +303,8 @@ class RunCode(object):
             self._open_window()
 
     def compile_(self, event=None):
+        self.stdout.delete('1.0', 'end')
+        self.stderr.delete('1.0', 'end')
         if self.io.filename is None:
             self.write_error(
                 'Error',
@@ -285,8 +312,6 @@ class RunCode(object):
             )
             return
 
-        self.stdout.delete('1.0', 'end')
-        self.stderr.delete('1.0', 'end')
         self.stderr.insert('1.0', 'Compiling...\n')
         self.estatus.update(None)
 
@@ -302,7 +327,7 @@ class RunCode(object):
                 return
 
             lang = self.lang.get()
-            cc = self.COMPILE_CMDS.get(lang, None)
+            cc = RunCode.COMPILE_CMDS.get(lang, None)
             if cc is None:
                 self.write_error(
                     'Note',
@@ -311,7 +336,10 @@ class RunCode(object):
                 return
 
             if lang in ('C89', 'C11', 'C++03', 'C++14', 'Haskell'):
-                cc += ' -Wall'
+                if self.wall.get():
+                    cc += ' -Wall'
+                if self.wextra.get():
+                    cc += ' -Wextra'
 
             # todo configureable extension
             out_name = os.path.splitext(source_name)[0] + '.exe'
@@ -356,13 +384,14 @@ class RunCode(object):
 
             self.stdout.insert('1.0', stdout)
             self.stderr.insert('1.0', stderr)
+            # todo colorizing compile error message
 
         d = threading.Thread(name='compile', target=run_compile)
         d.start()
         d.join(15)
         self.stdin.focus_set()
         if d.isAlive():
-            self.stderr.insert('1.0', '[Time Limit Exceeded]\n')
+            self.write_error('Error', 'Compilation timed out')
             p2 = subprocess.Popen(
                 'taskkill /im {} /f /t'.format(cc.split()[0]),
                 stdin=subprocess.PIPE,
@@ -371,35 +400,35 @@ class RunCode(object):
                 shell=True,
             )
             stdout, stderr = p2.communicate()
-            self.stderr.insert('end', '[TERMINATED]')
-
             self.stdin.focus_set()
 
     def execute(self, event=None):
+        self.estatus.update(None)
+        self.stdout.delete('1.0', 'end')
+        self.stderr.delete('1.0', 'end')
+
         if self.io.filename is None:
+            self.write_error('Error', 'Nothing to execute')
             return
 
         exec_name = os.path.splitext(self.io.filename)[0]+'.exe'
         if not os.path.isfile(exec_name):
             lang = self.lang.get()
-            ec = self.EXECUTE_CMDS.get(lang, '{out}')
+            ec = RunCode.EXECUTE_CMDS.get(lang, '{out}')
             if '{out}' in ec:
                 self.write_error(
                     'Error',
-                    'Selected language needs compiling'
+                    'Selected language requires compiling'
                 )
                 return
 
-        self.estatus.update(None)
-        self.stdout.delete('1.0', 'end')
-        self.stderr.delete('1.0', 'end')
         self.stderr.insert('1.0', 'Executing...\n')
         self.stdout.update_idletasks()
         self.stderr.update_idletasks()
 
         def run_exe():
             lang = self.lang.get()
-            exec_cmd = self.EXECUTE_CMDS.get(lang, '{out}').format(
+            exec_cmd = RunCode.EXECUTE_CMDS.get(lang, '{out}').format(
                 in_=self.io.filename,
                 out=exec_name,
                 cpath=os.path.dirname(self.io.filename),
@@ -430,7 +459,6 @@ class RunCode(object):
         d.join(int(self.time_limit.get()))
         self.stdin.focus_set()
         if d.isAlive():
-            self.stderr.insert('1.0', '[Time Limit Exceeded]\n')
             p2 = subprocess.Popen(
                 'taskkill /im {} /f /t'.format(os.path.basename(exec_name)),
                 stdin=subprocess.PIPE,
@@ -439,7 +467,8 @@ class RunCode(object):
                 shell=True,
             )
             stdout, stderr = p2.communicate()
-            self.stderr.insert('end', '[TERMINATED]')
+            self.write_error('Error', 'Time limit exceeded')
+            self.write_error('Warning', 'The program is terminated', 'end')
             self.stdin.focus_set()
 
         self.stdin.focus_set()
