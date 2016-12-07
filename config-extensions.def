@@ -129,7 +129,7 @@ enable=0
 defext=cpp
 
 [RunCodeGeneric]
-enable=1
+enable=0
 enable_shell=0
 [RunCodeGeneric_cfgBindings]
 run-code-generic=<Key-F7>

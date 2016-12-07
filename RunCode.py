@@ -1,4 +1,5 @@
 import os
+import regex
 import subprocess
 import tkSimpleDialog
 import threading
@@ -30,7 +31,6 @@ class ExitStatus(Entry):
             self.tvar.set('')
         else:
             if hasattr(p, 'returncode'):
-##                self.tvar.set(str(p.returncode))
                 r = p.returncode
                 if r < 0:
                     r += 2147483648
@@ -41,8 +41,6 @@ class ExitStatus(Entry):
                     self.tvar.set('0x{:X}'.format(r))
             else:
                 self.tvar.set('-')
-
-##        print `self.tvar.get()`
 
         status = self.tvar.get().strip()
 
@@ -66,9 +64,39 @@ class tkPulldown(ttk.Combobox):
 class RunCode(object):
     menudefs = [
         ('run', [
-            ('Run Code (for C/C++)', '<<run-code>>'),
+            ('Run Code', '<<run-code>>'),
         ])
     ]
+
+    COMPILE_CMDS = {
+        'C89':
+            'gcc --std=c89 -O2 -o {out} {in_}',
+##        'C99':
+##            'gcc --std=c99 -O2 -o {out} {in_}',
+        'C11':
+            'gcc --std=c11 -O2 -o {out} {in_}',
+        'C++03':
+            'g++ --std=c++03 -O2 -o {out} {in_}',
+##        'C++11':
+##            'g++ --std=c++11 -O2 -o {out} {in_}',
+        'C++14':
+            'g++ --std=c++14 -O2 -o {out} {in_}',
+        'C#':
+            'mcs {in_}',
+        'Java':
+            'javac {in_}',
+        'Haskell':
+            'ghc -o {out} {in_}',
+    }
+
+    EXECUTE_CMDS = {
+        'Java':
+            'java -classpath {cpath} {root}',
+        'Python2':
+            'py -2 {in_}',
+        'Python3':
+            'py -3 {in_}',
+    }
 
     def __init__(self, editwin=None):
         self.editwin = editwin
@@ -149,21 +177,18 @@ class RunCode(object):
         wlf.pack(side='left', padx=4, pady=2, fill='x', anchor='n')
 
         ## * Standard options
-        stdlf = LabelFrame(optionbuttons, text='C/C++ Standards')
-        available_stds = [
-            '(default)',
-            'c89', 'c90', 'c99', 'c11',
-            'c++98', 'c++03', 'c++11', 'c++14', 'c++17',
+        langlf = LabelFrame(optionbuttons, text='Languages')
+        available_langs = [
+            'C89', 'C11', 'C++03', 'C++14', 'C#',
+            'Java', 'Haskell',
+            'Python2', 'Python3',
         ]
 
-        self.cppstd = cppstd = tkPulldown(stdlf, available_stds, width=8)
-        Label(stdlf, text='--std=').pack(side='left', anchor='nw')
-
-        cppstd.pack(side='right', anchor='w')
-
+        self.lang = tkPulldown(langlf, available_langs, width=8)
+        self.lang.pack(side='right', anchor='w')
         optionbuttons.pack(side='top')
 
-        stdlf.pack(side='right', padx=4, pady=2, fill='x')
+        langlf.pack(side='right', padx=4, pady=2, fill='x')
 
         ## * Button
         bframe = Frame(colf)
@@ -173,27 +198,13 @@ class RunCode(object):
 
         self.comp_button.pack(side='right', anchor='s', padx=6, pady=8)
 
-##        ## * Additional options
-##        addoptlf = LabelFrame(colf, text='Additional options')
-##        self.addopte = Entry(
-##            addoptlf, textvariable=self.addopts,
-##            width=20,  font='Consolas 10',
-##            foreground='white', background='black', insertbackground='white',
-##        )
-##
-##        self.addopte.bind('<Control-Key-Return>', self.compile_)
-##        self.addopte.bind('<Escape>', self._close_window)
-##
-##        self.addopte.pack(side='top', fill='both', expand=True)
-##        addoptlf.pack(side='bottom', padx=2, pady=2, fill='both')
-
         coptframe.pack(side='left')
         bframe.pack(side='top', fill='both', expand=True)
 
         exlf.pack(side='top', fill='both', expand=True)
         colf.pack(side='top', fill='both', expand=True)
-        # --- Streams ---
 
+        # --- Streams ---
         shframe = Frame(frame)
         ## * Argv
         argvlf = LabelFrame(shframe, text='Command line arguments')
@@ -228,7 +239,6 @@ class RunCode(object):
         )
         self.stdin.bind('<Control-Key-Return>', self.execute)
         self.stdin.bind('<Control-Shift-Key-Return>', self.compile_)
-##        self.stdin.bind('<Shift-Key-Tab>', lambda e: self.addopte.focus_set)
 
         self.stdout = StdIO(
             'Standard Output', self._close_window, frame, fg='white',
@@ -243,23 +253,8 @@ class RunCode(object):
         frame.pack(side='top', fill='both', expand=True)
         self.stdin.focus_set()
 
-##        self.subwin.resizable(0, 1)
-
-##        size = lambda w: (w.winfo_height(), w.winfo_width())
-##        print size(self.subwin)
-
         if self.io.filename:
-##            self.stderr.insert("end", os.getcwd()+"--\n")
             os.chdir(os.path.dirname(self.io.filename))
-##            p = subprocess.Popen(
-##                "pwd",
-####                "cd {}".format(os.path.dirname(self.io.filename)),
-##                stdin=subprocess.PIPE,
-##                stdout=subprocess.PIPE,
-##                stderr=subprocess.PIPE,
-##                shell=True,
-##            )
-##            self.stderr.insert("end", os.getcwd()+"++\n")
 
     def _close_window(self, event=None):
         def _close(window, event=None):
@@ -271,6 +266,10 @@ class RunCode(object):
 
         self.subwin = None
 
+    def write_error(self, level, msg, pos='1.0'):
+        msg = '{}: {}\n'.format(level, msg)
+        self.stderr.insert(pos, msg)
+
     def run_code(self, event=None):
         try:
             self.subwin.focus_set()
@@ -280,6 +279,10 @@ class RunCode(object):
 
     def compile_(self, event=None):
         if self.io.filename is None:
+            self.write_error(
+                'Error',
+                'Source must to be named; please save'
+            )
             return
 
         self.stdout.delete('1.0', 'end')
@@ -291,52 +294,48 @@ class RunCode(object):
         self.stderr.update_idletasks()
 
         def run_compile():
-            if not hasattr(self.editwin, 'ext'):
+            self.stderr.delete('1.0', 'end')
+            self.stdout.delete('1.0', 'end')
+
+            source_name = self.io.filename
+            if source_name is None:
                 return
 
-            try:
-                f = self.editwin.ftype.get()
-            except (AttributeError,):
+            lang = self.lang.get()
+            cc = self.COMPILE_CMDS.get(lang, None)
+            if cc is None:
+                self.write_error(
+                    'Note',
+                    'Selected language does not need compiling\n'
+                )
                 return
 
-            std = self.cppstd.get()
+            if lang in ('C89', 'C11', 'C++03', 'C++14', 'Haskell'):
+                cc += ' -Wall'
 
-            use_gcc = False
-            if std == '(default)':
-                if f in ('C/l',):
-                    use_gcc = True
-            elif '++' not in std:
-                use_gcc = True
-
-            if use_gcc:
-                cc = idleConf.GetOption('extensions', 'CompileCode', 'compile_c')
-##            elif f in ('C++/l',):
-            else:  # xxx?
-                cc = idleConf.GetOption('extensions', 'CompileCode', 'compile_cpp')
-
-            raw_name = os.path.splitext(self.io.filename)[0]
-            cc = cc.format(raw_name)
-            cc_ = ''
-
-            if std.startswith('('):
-                pass
-            elif std == 'ansi':
-                cc_ = ' --ansi'
-            else:
-                cc_ = ' --std=' + std
-
-            if self.wall.get():
-                cc_ += ' -Wall'
-            if self.wextra.get():
-                cc_ += ' -Wextra'
+            # todo configureable extension
+            out_name = os.path.splitext(source_name)[0] + '.exe'
 
             if self.cargv.get():
-                cc_ += ' ' + self.argv.get()
+                m = regex.search(r'\B--\B', self.argv.get())
+                endpos = m and m.end()
 
-            if re.search(r'\s?-\w*[ES]\w*\b', cc_):
-                cc = re.sub(r'-o [^ ]+', '-o -', cc)
+                if regex.search(
+                        r'\B-[A-Z]*[ES]', self.argv.get(), endpos=endpos
+                ):
+                    out_name = '-'
 
-            cc += cc_
+                cc = cc.format(out=out_name, in_=source_name)
+                cc += ' ' + self.argv.get()
+
+            else:
+                if self.argv.get().strip() != '':
+                    self.write_error(
+                        'Note',
+                        'Command line arguments are not passed to the compiler'
+                    )
+
+                cc = cc.format(out=out_name, in_=source_name)
 
             p = subprocess.Popen(
                 cc, shell=True,
@@ -355,7 +354,6 @@ class RunCode(object):
             stderr = re.sub(fullpath_win, basename, stderr)
             stderr = re.sub(fullpath_unix, basename, stderr)
 
-            self.stderr.delete('1.0', 'end')
             self.stdout.insert('1.0', stdout)
             self.stderr.insert('1.0', stderr)
 
@@ -383,7 +381,14 @@ class RunCode(object):
 
         exec_name = os.path.splitext(self.io.filename)[0]+'.exe'
         if not os.path.isfile(exec_name):
-            return
+            lang = self.lang.get()
+            ec = self.EXECUTE_CMDS.get(lang, '{out}')
+            if '{out}' in ec:
+                self.write_error(
+                    'Error',
+                    'Selected language needs compiling'
+                )
+                return
 
         self.estatus.update(None)
         self.stdout.delete('1.0', 'end')
@@ -393,8 +398,15 @@ class RunCode(object):
         self.stderr.update_idletasks()
 
         def run_exe():
+            lang = self.lang.get()
+            exec_cmd = self.EXECUTE_CMDS.get(lang, '{out}').format(
+                in_=self.io.filename,
+                out=exec_name,
+                cpath=os.path.dirname(self.io.filename),
+                root=os.path.basename(os.path.splitext(self.io.filename)[0]),
+            )
             p = subprocess.Popen(
-                exec_name+' '+self.argv.get(), shell=True,
+                exec_cmd+' '+self.argv.get(), shell=True,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -428,7 +440,6 @@ class RunCode(object):
             )
             stdout, stderr = p2.communicate()
             self.stderr.insert('end', '[TERMINATED]')
-
             self.stdin.focus_set()
 
         self.stdin.focus_set()
