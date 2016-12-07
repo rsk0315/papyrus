@@ -105,6 +105,8 @@ class RunCode(object):
             {'foreground': '#FF55FF', 'font': ('Consolas', 10, 'bold')},
         'Error':
             {'foreground': '#FE5454', 'font': ('Consolas', 10, 'bold')},
+        'Name':
+            {'foreground': '#b7b7b7', 'font': ('Consolas', 10, 'bold')},
     }    
 
     def __init__(self, editwin=None):
@@ -186,7 +188,7 @@ class RunCode(object):
         wlf.pack(side='left', padx=4, pady=2, fill='x', anchor='n')
 
         ## * Standard options
-        langlf = LabelFrame(optionbuttons, text='Languages')
+        langlf = LabelFrame(optionbuttons, text='Language')
         available_langs = [
             'C89', 'C11', 'C++03', 'C++14', 'C#',
             'Java', 'Haskell',
@@ -197,7 +199,7 @@ class RunCode(object):
         self.lang.pack(side='right', anchor='w')
         optionbuttons.pack(side='top')
 
-        langlf.pack(side='right', padx=4, pady=2, fill='x')
+        langlf.pack(side='right', padx=9, pady=2, fill='x')
 
         ## * Button
         bframe = Frame(colf)
@@ -382,9 +384,12 @@ class RunCode(object):
             stderr = re.sub(fullpath_win, basename, stderr)
             stderr = re.sub(fullpath_unix, basename, stderr)
 
+            inserted = int(self.stderr.index('end').split('.')[0])
             self.stdout.insert('1.0', stdout)
             self.stderr.insert('1.0', stderr)
             # todo colorizing compile error message
+            if self.lang.get() in ('C89', 'C11', 'C++03', 'C++14'):
+                self.colorize_errmsg(inserted)
 
         d = threading.Thread(name='compile', target=run_compile)
         d.start()
@@ -401,6 +406,111 @@ class RunCode(object):
             )
             stdout, stderr = p2.communicate()
             self.stdin.focus_set()
+
+    def colorize_errmsg(self, pos=1):
+        end = int(self.stderr.index('end').split('.')[0])
+        warn_level = None
+        i = 1
+
+        NAME_RE = regex.compile(
+            r'(?:In file included from )((?:\w+:)?[^:]+:\d+:\d+),'
+        r'|'r'(?:                 from )((?:\w+:)?[^:]+:\d+:)'
+        r'|'r'((?:\w+:)?[^:]+:) '
+        )
+        NAME_LC_RE = regex.compile(r'(?:\w+:)?[^:]+:\d+:\d+:')
+        QUOT_RE = regex.compile(r"'[^']+'")
+        ULINE_RE = regex.compile(r'~*\^~*')
+        WARN_RE = regex.compile(r'\[(-W[a-z\d=+-]+)\]$')
+
+        while i < end:
+            if i < pos:
+                i += 1
+                continue
+
+            line = self.stderr.get(
+                '{}.0 linestart'.format(i), '{}.0 lineend'.format(i)
+            )
+
+            if warn_level is None:
+                m = NAME_LC_RE.match(line)
+                if m is not None:
+                    self.stderr.tag_add(
+                        'Name', '{}.0'.format(i),
+                        '{}.0{:+}c'.format(i, m.end())
+                    )
+
+                    m = regex.search(r'(\w+):', line, pos=m.end()+1)
+                    if m is None:
+                        break
+
+                    wlevel = m.group(1).capitalize()
+                    self.stderr.tag_add(
+                        wlevel,
+                        '{}.0{:+}c'.format(i, m.start()),
+                        '{}.0{:+}c'.format(i, m.end())
+                    )
+
+                    if wlevel == 'Warning':
+                        m = WARN_RE.search(line)
+                        if m is not None:
+                            self.stderr.tag_add(
+                                'Warning',
+                                '{}.0{:+}c'.format(i, m.start(1)),
+                                '{}.0{:+}c'.format(i, m.end(1))
+                            )
+
+                    if not line.endswith(':'):
+                        warn_level = wlevel
+                else:
+                    m = NAME_RE.match(line)
+                    if m is None:
+                        break
+
+                    a, b = m.span(1)
+                    if b == -1: a, b = m.span(2)
+                    if b == -1: a, b = m.span(3)  # hack
+
+                    self.stderr.tag_add(
+                        'Name', '{}.0{:+}c'.format(i, a),
+                        '{}.0{:+}c'.format(i, b)
+                    )
+
+                m = QUOT_RE.search(line)
+                while m is not None:
+                    self.stderr.tag_add(
+                        'Name',
+                        '{}.0{:+}c'.format(i, m.start()),
+                        '{}.0{:+}c'.format(i, m.end())
+                    )
+                    m = QUOT_RE.search(line, pos=m.end())
+            else:
+                underline = self.stderr.get(
+                    '{}.0 linestart'.format(i+1),
+                    '{}.0 lineend'.format(i+1)
+                )
+                m = ULINE_RE.search(underline)
+                if m is None:
+                    break
+
+                print `m.group(), warn_level`
+
+                self.stderr.tag_add(
+                    warn_level,
+                    '{}.0{:+}c'.format(i, m.start()),
+                    '{}.0{:+}c'.format(i, m.end())
+                )
+                self.stderr.tag_add(
+                    warn_level,
+                    '{}.0{:+}c'.format(i+1, m.start()),
+                    '{}.0{:+}c'.format(i+1, m.end())
+                )
+                i += 1
+                warn_level = None
+
+            i += 1
+
+        for key, value in RunCode.MESSAGE_TAGS.items():
+            self.stderr.tag_configure(key, **value)
 
     def execute(self, event=None):
         self.estatus.update(None)
@@ -468,7 +578,7 @@ class RunCode(object):
             )
             stdout, stderr = p2.communicate()
             self.write_error('Error', 'Time limit exceeded')
-            self.write_error('Warning', 'The program is terminated', 'end')
+            self.write_error('Note', 'The program is terminated', 'end')
             self.stdin.focus_set()
 
         self.stdin.focus_set()
