@@ -70,32 +70,32 @@ class RunCode(object):
 
     COMPILE_CMDS = {
         'C89':
-            'gcc --std=c89 -O2 -o {out} {in_}',
+            'gcc --std=c89 -O2 -o "{out}" "{in_}"',
 ##        'C99':
-##            'gcc --std=c99 -O2 -o {out} {in_}',
+##            'gcc --std=c99 -O2 -o "{out}" "{in_}"',
         'C11':
-            'gcc --std=c11 -O2 -o {out} {in_}',
+            'gcc --std=c11 -O2 -o "{out}" "{in_}"',
         'C++03':
-            'g++ --std=c++03 -O2 -o {out} {in_}',
+            'g++ --std=c++03 -O2 -o "{out}" "{in_}"',
 ##        'C++11':
-##            'g++ --std=c++11 -O2 -o {out} {in_}',
+##            'g++ --std=c++11 -O2 -o "{out}" "{in_}"',
         'C++14':
-            'g++ --std=c++14 -O2 -o {out} {in_}',
+            'g++ --std=c++14 -O2 -o "{out}" "{in_}"',
         'C#':
-            'mcs {in_}',
+            'mcs "{in_}"',
         'Java':
-            'javac {in_}',
+            'javac "{in_}"',
         'Haskell':
-            'ghc -o {out} {in_}',
+            'ghc -o "{out}" "{in_}"',
     }
 
     EXECUTE_CMDS = {
         'Java':
-            'java -classpath {cpath} {root}',
+            'java -classpath "{cpath}" "{root}"',
         'Python2':
-            'py -2 {in_}',
+            'py -2 "{in_}"',
         'Python3':
-            'py -3 {in_}',
+            'py -3 "{in_}"',
     }
 
     MESSAGE_TAGS = {
@@ -414,7 +414,7 @@ class RunCode(object):
         exec_name = os.path.splitext(self.io.filename)[0]+'.exe'
         if not os.path.isfile(exec_name):
             lang = self.lang.get()
-            ec = RunCode.EXECUTE_CMDS.get(lang, '{out}')
+            ec = RunCode.EXECUTE_CMDS.get(lang, '"{out}"')
             if '{out}' in ec:
                 self.write_error(
                     'Error',
@@ -428,7 +428,7 @@ class RunCode(object):
 
         def run_exe():
             lang = self.lang.get()
-            exec_cmd = RunCode.EXECUTE_CMDS.get(lang, '{out}').format(
+            exec_cmd = RunCode.EXECUTE_CMDS.get(lang, '"{out}"').format(
                 in_=self.io.filename,
                 out=exec_name,
                 cpath=os.path.dirname(self.io.filename),
