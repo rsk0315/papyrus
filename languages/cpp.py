@@ -557,6 +557,9 @@ def specify_tag(line, begin, end):
     line = eat_quote(line)
     name = line[begin:end]
 
+    if regex.search(r'__|^_[A-Z]', name):
+        return "RESERVED"
+
     cstmt = get_stmt_index(line, begin, end)
     stmt = line.__getslice__(*cstmt)
     len_ws = len(stmt) - len(stmt.lstrip())

@@ -43,6 +43,7 @@ append_tags = {
     'STL_CLASSES': {_f:SKY, _b:WHITE},
     'LINE_COMMENT': {_f: GREY, _b: WHITE, 'font':(font, 10, 'italic')},
     'BLOCK_COMMENT': {_f: GREY, _b: WHITE, 'font':(font, 10, 'bold')},
+    'RESERVED': {_f: RED, _b: WHITE},
 
     'RE_SGL': {_f: SKY, _b: WHITE},
     'RE_REPEAT': {_f: RED, _b: WHITE},
@@ -60,6 +61,7 @@ append_tags = {
 ##    'NONASCIIB': {_f: GREY, _b: WHITE, 'font': ('Meiryo', 7, 'bold')},
     'NONASCIIB': {_f: GREY, _b: WHITE, 'font': ('Consolas', 10, 'bold')},
     'IDENTIFIER': {_f: BLACK, _b: WHITE},
+    'WARNING': {_f: RED, _b: WHITE, 'font': ('Consolas', 10, 'underline')},
 }
 
 ##append_tags = dict(
