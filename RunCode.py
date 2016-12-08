@@ -359,12 +359,6 @@ class RunCode(object):
                 cc += ' ' + self.argv.get()
 
             else:
-                if self.argv.get().strip() != '':
-                    self.write_error(
-                        'Note',
-                        'Command line arguments are not passed to the compiler'
-                    )
-
                 cc = cc.format(out=out_name, in_=source_name)
 
             p = subprocess.Popen(
@@ -390,6 +384,13 @@ class RunCode(object):
             # todo colorizing compile error message
             if self.lang.get() in ('C89', 'C11', 'C++03', 'C++14'):
                 self.colorize_errmsg(inserted)
+
+            if not self.cargv.get() and self.argv.get().strip() != '':
+                self.write_error(
+                    'Note',
+                    'Command line arguments are not passed to the compiler'
+                )
+
 
         d = threading.Thread(name='compile', target=run_compile)
         d.start()
@@ -423,9 +424,9 @@ class RunCode(object):
         WARN_RE = regex.compile(r'\[(-W[a-z\d=+-]+)\]$')
 
         while i < end:
-            if i < pos:
-                i += 1
-                continue
+##            if i < pos:
+##                i += 1
+##                continue
 
             line = self.stderr.get(
                 '{}.0 linestart'.format(i), '{}.0 lineend'.format(i)
@@ -490,9 +491,9 @@ class RunCode(object):
                 )
                 m = ULINE_RE.search(underline)
                 if m is None:
-                    break
-
-                print `m.group(), warn_level`
+                    warn_level = None
+                    # i += 1
+                    continue
 
                 self.stderr.tag_add(
                     warn_level,
