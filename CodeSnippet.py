@@ -20,6 +20,8 @@ class CodeSnippet(object):
         self.text = editwin.text
         self.text.bind('<<code-snippet>>', self.complete_event)
 
+        self.io = self.editwin.io
+
     def complete_event(self, event=None):
         curline = self.text.get('insert linestart', 'insert')
         query = curline.strip()
@@ -30,11 +32,20 @@ class CodeSnippet(object):
 
         indent = re.search(r'[ \t]*', curline).group()
 
-        idlelib_path = os.path.dirname(__file__)
-        snippet_path = os.path.join(idlelib_path, 'snippets', sdir)
+        if query[:2] == '..':
+            path = os.path.dirname(os.path.dirname(self.io.filename))
+        elif query[0] == '.':
+            path = os.path.dirname(self.io.filename)
+        elif query[0] not in "./\\":
+            idlelib_path = os.path.dirname(__file__)
+            snippet_path = os.path.join(idlelib_path, 'snippets', sdir)
+            path = snippet_path
+        else:
+            path = ''
+
         snippet_files = [
-            f for f in os.listdir(snippet_path)
-            if os.path.isfile(os.path.join(snippet_path, f))
+            f for f in os.listdir(path)
+            if os.path.isfile(os.path.join(path, f))
         ]
         if hasattr(self.editwin, 'ext'):
             ext = self.editwin.ext or ''
@@ -43,14 +54,14 @@ class CodeSnippet(object):
 
         snippet = ''
         if sbase+ext in snippet_files:
-            snippet_file = os.path.join(snippet_path, sbase+ext)
+            snippet_file = os.path.join(path, sbase+ext)
         else:
             candidate = [s for s in snippet_files if s.startswith(sbase)]
             # todo for auto-completion
-            if len(candidate) == 1:
-                snippet_file = os.path.join(snippet_path, candidate[0])
-            else:
+            if len(candidate) < 1:
                 return
+
+            snippet_file = os.path.join(path, candidate[0])
 
         snippet = open(snippet_file).read().rstrip()
         if indent:

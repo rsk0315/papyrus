@@ -99,7 +99,7 @@ class CallTips:
             return
         arg_text = self.fetch_tip(expression)
         # - 2016 9 27 --
-        if self.editwin.ftype.get() in ('C++/l',):
+        if hasattr(self.editwin, 'ftype') and self.editwin.ftype.get() in ('C++/l',):
             e = ''
             if not arg_text:
                 # treat as constructor
@@ -200,7 +200,7 @@ class CallTips:
         if rpcclt:
             return rpcclt.remotecall("exec", "get_the_calltip",
                                      (expression,), {})
-        else:
+        elif hasattr(self.editwin, 'ftype'):
             #
             if self.editwin.ftype.get() in ('C++/l',):
 ##                print expression

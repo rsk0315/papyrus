@@ -20,7 +20,8 @@ keywords = r'|'.join([
     'register', 'return',   'short',    'signed',   'sizeof',   'static',
     'struct',   'switch',   'typedef',  'union',    'unsigned', 'void',
     'volatile', 'while',
-    'nullptr',  'class',    'mutable',  'thread_local',         'friend',
+    # 'nullptr',
+    'class',    'mutable',  'thread_local',         'friend',
     'constexpr',            'explicit', 'inline',   'virtual',  'public',
     'protected',            'private',  'operator', 'template', 'bad_cast',
     'bad_typeid',           'catch',    'const_cast',
@@ -64,7 +65,7 @@ stl_classes = [r'\b(?:' + r'|'.join(stl_class_list) + r')\b']
 
 string = [
     r'\'(?:[^\\\n]|\\[abfnrtv\'"?\\]|\\[0-7]{1,3}|\\[Xx][0-9A-Fa-f]{1,2})\'?',
-    r'(?<!\boperator\s*)[Rr]?"[^"\\\n]*(?:(?:\\.)+[^"\\\n]*)*"?',
+    r'(?<!\boperator\s*"?)[R]?"[^"\\\n]*(?:(?:\\.)+[^"\\\n]*)*"?',
     r'@"[^"]*(?:(?:"")+[^"]*)*"?',
 
     r'(?m)(?<=^[ \t]*#[ \t]*include)\s*<[^>\n]*>?',
@@ -94,6 +95,7 @@ definition = [
             r'(?:\+\+|--|<<|>>|\&\&|\|\||\(\)|\[\])',
             r'->\*?',
             r'[~!*/%+\-<>&^|=,]',
+            r'""_\w*',
         ]
     ) + r')(?=[ \t]*\()',
 ]
@@ -108,7 +110,7 @@ comment = [
 ]
 
 freq_used_val = [
-    r'\b(?:true|false|this)\b'
+    r'\b(?:true|false|this|nullptr)\b'
 ]
 
 KEYWORD = (
@@ -398,6 +400,9 @@ def is_decl(stmt, begin):
     if following.startswith("*="):
         return False  # xxx
 
+    if stmt.lstrip().startswith('('):
+        return False
+
     ID_NS_RE = regex.compile(ID_NS)
     SMPL_ID_RE = regex.compile(r'(?:\b[_A-Za-z]\w*)')
 
@@ -432,9 +437,28 @@ def is_decl(stmt, begin):
             if end >= len(stmt):
                 return False
 
-            if stmt[end] in ";=":
+##            if stmt[end] in ";=":
+##                if next_id.start() == begin:
+##                    return True
+
+            if stmt[end] in ";":
                 if next_id.start() == begin:
                     return True
+
+            if stmt[end] in "<":
+                # template specialization?
+                if '>' not in stmt[end:]:
+                    return False
+                if next_id.start() == begin:
+                    return True
+
+            # ---
+            if stmt[end] in "=":
+                # xxx non-actual usage
+                end = get_nextpos(stmt, end)
+                if end >= len(stmt):
+                    return False
+            #
 
             if stmt[end] in ")\n":
                 return False
@@ -560,11 +584,22 @@ def specify_tag(line, begin, end):
     if regex.search(r'__|^_[A-Z]', name):
         return "RESERVED"
 
+    if regex.search(r'(?<=\boperator\s*""[A-Za-z])', line, pos=begin):
+        return "RESERVED"
+
     cstmt = get_stmt_index(line, begin, end)
     stmt = line.__getslice__(*cstmt)
     len_ws = len(stmt) - len(stmt.lstrip())
 
     if line[cstmt[0]:].strip().startswith('}'):
+        if not line[cstmt[0]:].strip(" \t}"):
+            return False  # xxx
+
+        if not line[cstmt[0]:].strip(" \t}")[0].isalnum():
+            return False  # xxx
+
+        if line[cstmt[0]:].strip(" \t}").startswith(","):
+            return False  # todo
         if not line[cstmt[0]:].strip(" \t}").startswith("else"):
             # struct declaretions (xxx conflictions)
             return "DEFINITION"
@@ -579,8 +614,13 @@ def specify_tag(line, begin, end):
                 # initialization
                 return "BUILTIN"
 
+            if line[end] == '{':
+                # list-initialization for non-class type
+                return "BUILTIN"
+
             # range-based for
-            return None
+            if stmt.lstrip().startswith('for'):
+                return None
 
     if end < len(line) and line[end] == '(':
         i = get_parenclose_index(line, end, "()")
@@ -591,6 +631,9 @@ def specify_tag(line, begin, end):
             if nextchar is not None:
                 if nextchar[0] == '{':
                     # function definitions
+
+                    if line[:begin].rstrip().endswith(','):
+                        return "BUILTIN"
 
                     si = list(get_stmt_index(line, begin, end))
 
@@ -646,7 +689,7 @@ def specify_tag(line, begin, end):
 
     if end < len(line):
         if line[end] == '(':
-            # functions declarations
+            # functions calls
             return "BUILTIN"
 
         if line[end] == '<':

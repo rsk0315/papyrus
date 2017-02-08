@@ -73,7 +73,7 @@ class EditSnippet(object):
 ##                message='Please specify the file name.'
 ##            )
             q = askyesno(
-                title='Cannot specify the name',
+                title='File not found',
                 message='Create the new file?'
             )
             if q:

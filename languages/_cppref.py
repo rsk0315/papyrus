@@ -7390,4 +7390,367 @@ CPPREF = {
         'template <class... Types>\n'
         'void swap(tuple<Types...> &lhs, tuple<Types...> &rhs); (since C++11)',
 
+    'exit':
+        '<cstdlib>\n'
+        'causes normal program termination with cleaning up\n\n'
+
+        'void exit(int exit_code); (until C++11)\n\n'
+
+        '[[noreturn]] void exit(int exit_code); (since C++11)',
+
+    'quick_exit':
+        '<cstdlib>\n'
+        'causes quick program termination without completely cleaning up\n\n'
+
+        '[[noreturn]] void quick_exit(int exit_code); (since C++11)',
+
+    '_Exit':
+        '<cstdlib>\n'
+        'causes normal program termination without cleaning up\n\n'
+
+        '[[noreturn]] void _Exit(int exit_code); (since C++11)',
+
+    'atexit':
+        '<cstdlib>\n'
+        'registers a function to be called on std::exit() invocation\n\n'
+
+        'int atexit(/*c-atexit-handler*/ *func);\n\n'
+
+        'int atexit(/*atexit-handler*/ *func);',
+
+    'at_quick_exit':
+        '<cstdlib>\n'
+        'registers a function to be called on quick_exit invocation\n\n'
+
+        'int at_quick_exit(/*atexit-handler*/ *func);\n\n'
+
+        'int at_quick_exit(/*c-atexit-handler*/ *func); (since C++11)',
+
+    'system':
+        '<cstdlib>\n'
+        'calls the host environment\'s command processor\n\n'
+
+        'int system(const char *command);',
+
+    'getenv':
+        '<cstdlib>\n'
+        'access to the list of environment variables\n\n'
+
+        'char *getenv(const char *env_var);',
+
+    'malloc':
+        '<cstdlib>\n'
+        'allocates memory\n\n'
+
+        'void *malloc(std::size_t size);',
+
+    'calloc':
+        '<cstdlib>\n'
+        'allocates and zeroes memory\n\n'
+
+        'void *calloc(std::size_t num, std::size_t size);',
+
+    'realloc':
+        '<cstdlib>\n'
+        'expands previously allocated memory block\n\n'
+
+        'void *realloc(void *ptr, std::size_t new_size);',
+
+    'free':
+        '<cstdlib>\n'
+        'deallocates previously allocated memory\n\n'
+
+        'void free(void *ptr);',
+
+    'atof':
+        '<cstdlib>\n'
+        'converts a byte string to a floating point value\n\n'
+
+        'double atof(const char *str);',
+
+    'atoi':
+        '<cstdlib>\n'
+        'converts a byte string to an integer value\n\n'
+
+        'int atoi(const char *str);',
+
+    'atol':
+        '<cstdlib>\n'
+        'converts a byte string to an integer value\n\n'
+
+        'long atol(const char *str);',
+
+    'atoll':
+        '<cstdlib>\n'
+        'converts a byte string to an integer value\n\n'
+
+        'long long atoll(const char *str); (since C++11)',
+
+    'strtol':
+        '<cstdlib>\n'
+        'converts a byte string to an integer value\n\n'
+
+        'long strtol(const char *str, char **str_end, int base);',
+
+    'strtoll':
+        '<cstdlib>\n'
+        'converts a byte string to an integer value\n\n'
+
+        'long long strtoll(const char *str, char **str_end, int base); (since C++11)',
+
+    'strtoul':
+        '<cstdlib>\n'
+        'converts a byte string to an unsigned integer value\n\n'
+
+        'unsigned long strtoul(const char *str, char **str_end, int base);',
+
+    'strtoull':
+        '<cstdlib>\n'
+        'converts a byte string to an unsigned integer value\n\n'
+
+        'unsigned long long strtoull( \n'
+        '    const char *str, char **str_end, int base \n'
+        '); (since C++11)',
+
+    'strtof':
+        '<cstdlib>\n'
+        'converts a byte string to a floating point value\n\n'
+
+        'float strtof(const char *str, char **str_end); (since C++11)',
+
+    'strtod':
+        '<cstdlib>\n'
+        'converts a byte string to a floating point value\n\n'
+
+        'double strtod(const char *str, char **str_end);',
+
+    'strtold':
+        '<cstdlib>\n'
+        'converts a byte string to a floating point value\n\n'
+
+        'long double strtold(const char *str, char **str_end); (since C++11)',
+
+    'mblen':
+        '<cstdlib>\n'
+        'returns the number of bytes in the next multibyte character\n\n'
+
+        'int mblen(const char *s, std::size_t n);',
+
+    'mbtowc':
+        '<cstdlib>\n'
+        'converts the next multibyte character to wide character\n\n'
+
+        'int mbtowc(wchar_t *pwc, const char *s, std::size_t n);',
+
+    'wctomb':
+        '<cstdlib>\n'
+        'converts a wide character to its multibyte representation\n\n'
+
+        'int wctomb(char *s, wchar_t wc);',
+
+    'mbstowcs':
+        '<cstdlib>\n'
+        'converts a narrow multibyte character string to wide string\n\n'
+
+        'std::size_t mbstowcs(wchar_t *dst, const char *src, std::size_t len);',
+
+    'wcstombs':
+        '<cstdlib>\n'
+        'converts a wide string to narrow multibyte character string\n\n'
+
+        'std::size_t wcstombs(char *dst, const wchar_t *src, std::size_t len);',
+
+    'rand':
+        '<cstdlib>\n'
+        'generates a pseudo-random number\n\n'
+
+        'int rand();',
+
+    'srand':
+        '<cstdlib>\n'
+        'seeds pseudo-random number generator\n\n'
+
+        'void srand(unsigned seed);',
+
+    'qsort':
+        '<cstdlib>\n'
+        'sorts a range of elements with unspecified type\n\n'
+
+        'void qsort( \n'
+        '    void *ptr, std::size_t count, std::size_t size, comparepredcomp \n'
+        ');\n\n'
+
+        'void qsort( \n'
+        '    void *ptr, std::size_t count, std::size_t size, comparepredcomp \n'
+        ');',
+
+    'bsearch':
+        '<cstdlib>\n'
+        'searches an array for an element of unspecified type\n\n'
+
+        'void *bsearch( \n'
+        '    const void *key, const void *ptr, std::size_t count, std::size_t size, \n'
+        '    comparepredcomp \n'
+        ');\n\n'
+
+        'void *bsearch( \n'
+        '    const void *key, const void *ptr, std::size_t count, std::size_t size, \n'
+        '    comparepredcomp \n'
+        ');',
+
+    'div':
+        '<cstdlib>\n'
+        'computes quotient and remainder of integer division\n\n'
+
+        'std::div_t div(int x, int y);\n\n'
+
+        'std::ldiv_t div(long x, long y);\n\n'
+
+        'std::lldiv_t div(long long x, long long y); (since C++11)\n\n'
+
+        'std::imaxdiv_t div(std::intmax_t x, std::intmax_t y); (since C++11)',
+
+    'strcpy':
+        '<cstring>\n'
+        'copies one string to another\n\n'
+
+        'char *strcpy(char *dest, const char *src);',
+
+    'strncpy':
+        '<cstring>\n'
+        'copies a certain amount of characters from one string to another\n\n'
+
+        'char *strncpy(char *dest, const char *src, std::size_t count);',
+
+    'strcat':
+        '<cstring>\n'
+        'concatenates two strings\n\n'
+
+        'char *strcat(char *dest, const char *src);',
+
+    'strncat':
+        '<cstring>\n'
+        'concatenates a certain amount of characters of two strings\n\n'
+
+        'char *strncat(char *dest, const char *src, std::size_t count);',
+
+    'strxfrm':
+        '<cstring>\n'
+        'transform a string so that strcmp would produce the same result as strcoll\n\n'
+
+        'std::size_t strxfrm(char *dest, const char *src, std::size_t count);',
+
+    'strlen':
+        '<cstring>\n'
+        'returns the length of a given string\n\n'
+
+        'std::size_t strlen(const char *str);',
+
+    'strcmp':
+        '<cstring>\n'
+        'compares two strings\n\n'
+
+        'int strcmp(const char *lhs, const char *rhs);',
+
+    'strncmp':
+        '<cstring>\n'
+        'compares a certain amount of characters of two strings\n\n'
+
+        'int strncmp(const char *lhs, const char *rhs, size_t count);',
+
+    'strcoll':
+        '<cstring>\n'
+        'compares two strings in accordance to the current locale\n\n'
+
+        'int strcoll(const char *lhs, const char *rhs);',
+
+    'strchr':
+        '<cstring>\n'
+        'finds the first occurrence of a character\n\n'
+
+        'const char *strchr(const char *str, int ch);\n\n'
+
+        'char *strchr(char *str, int ch);',
+
+    'strrchr':
+        '<cstring>\n'
+        'finds the last occurrence of a character\n\n'
+
+        'const char *strrchr(const char *str, int ch);\n\n'
+
+        'char *strrchr(char *str, int ch);',
+
+    'strspn':
+        '<cstring>\n'
+        'returns the length of the maximum initial segment that consists of only the\n'
+        'characters found in another byte string\n\n'
+
+        'size_t strspn(const char *dest, const char *src);',
+
+    'strcspn':
+        '<cstring>\n'
+        'returns the length of the maximum initial segment that consists of only the\n'
+        'characters not found in another byte string\n\n'
+
+        'size_t strcspn(const char *dest, const char *src);',
+
+    'strpbrk':
+        '<cstring>\n'
+        'finds the first location of any character from a set of separators\n\n'
+
+        'const char *strpbrk(const char *dest, const char *breakset);\n\n'
+
+        'char *strpbrk(char *dest, const char *breakset);',
+
+    'strstr':
+        '<cstring>\n'
+        'finds the first occurrence of a substring of characters\n\n'
+
+        'const char *strstr(const char *str, const char *target);\n\n'
+
+        'char *strstr(char *str, const char *target);',
+
+    'strtok':
+        '<cstring>\n'
+        'finds the next token in a byte string\n\n'
+
+        'char *strtok(char *str, const char *delim);',
+
+    'memchr':
+        '<cstring>\n'
+        'searches an array for the first occurrence of a character\n\n'
+
+        'const void *memchr(const void *ptr, int ch, std::size_t count);\n\n'
+
+        'void *memchr(void *ptr, int ch, std::size_t count);',
+
+    'memcmp':
+        '<cstring>\n'
+        'compares two buffers\n\n'
+
+        'int memcmp(const void *lhs, const void *rhs, std::size_t count);',
+
+    'memset':
+        '<cstring>\n'
+        'fills a buffer with a character\n\n'
+
+        'void *memset(void *dest, int ch, std::size_t count);',
+
+    'memcpy':
+        '<cstring>\n'
+        'copies one buffer to another\n\n'
+
+        'void *memcpy(void *dest, const void *src, std::size_t count);',
+
+    'memmove':
+        '<cstring>\n'
+        'moves one buffer to another\n\n'
+
+        'void *memmove(void *dest, const void *src, std::size_t count);',
+
+    'strerror':
+        '<cstring>\n'
+        'returns a text version of a given error code\n\n'
+
+        'char *strerror(int errnum);',
 }
