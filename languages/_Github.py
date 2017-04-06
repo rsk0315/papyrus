@@ -37,6 +37,7 @@ append_tags = {
     'FUNCDEF': {_f: PURPLE, _b: WHITE},
     'STRING_PREFIX': {_f: RED, _b: WHITE},
     'PREPROCESSOR': {_f: RED, _b: WHITE, 'font': (font, 10, 'italic')},
+    'ATTRIBUTES': {_f: RED, _b: WHITE, 'font': (font, 10, 'italic')},
     'SHARP': {_f:BLACK, _b:WHITE},
     'PUNC': {_f:BLACK, _b:WHITE},
     'LINK': {_f:BLACK, _b:WHITE, 'font':(font, 10, 'underline')},
@@ -44,6 +45,7 @@ append_tags = {
     'LINE_COMMENT': {_f: GREY, _b: WHITE, 'font':(font, 10, 'italic')},
     'BLOCK_COMMENT': {_f: GREY, _b: WHITE, 'font':(font, 10, 'bold')},
     'RESERVED': {_f: RED, _b: WHITE},
+    'KWVAL': {_f: SKY, _b: WHITE, 'font':(font, 10, 'italic')},
 
     'RE_SGL': {_f: SKY, _b: WHITE},
     'RE_REPEAT': {_f: RED, _b: WHITE},
@@ -62,6 +64,9 @@ append_tags = {
     'NONASCIIB': {_f: GREY, _b: WHITE, 'font': ('Consolas', 10, 'bold')},
     'IDENTIFIER': {_f: BLACK, _b: WHITE},
     'WARNING': {_f: RED, _b: WHITE, 'font': ('Consolas', 10, 'underline')},
+    'ASSEMBLY': {_f: SKY, _b: WHITE, 'font': ('Consolas', 10, 'italic')},
+    'BOLD': {_f: BLACK, _b: WHITE, 'font': ('Consolas', 10, 'bold')},
+    'ITALIC': {_f: BLACK, _b: WHITE, 'font': ('Consolas', 10, 'italic')},
 }
 
 ##append_tags = dict(

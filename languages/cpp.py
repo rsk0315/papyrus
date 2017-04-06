@@ -10,27 +10,60 @@ def any(name, alternates):
         pattern=r'|'.join(alternates),
     )
 
+##keywords = r'|'.join([
+##    r'(?<=(?:^|\n)[ \t]*#(?:\\\n|[^\n])*)defined',
+##    'auto',     'break',    'case',     'char',     'const',    'continue',
+##    'default',  'do',       'double',   r'(?<!#)else',
+##    'enum',     'extern',
+##    'float',    'for',      'goto',     r'(?<!#)if',
+##    'int',      'long',
+##    'register', 'return',   'short',    'signed',   'sizeof',   'static',
+##    'struct',   'switch',   'typedef',  'union',    'unsigned', 'void',
+##    'volatile', 'while',
+##    # 'nullptr',
+##    'class',    'mutable',  'thread_local',         'friend',
+##    'constexpr',            'explicit', 'inline',   'virtual',  'public',
+##    'protected',            'private',  'operator', 'template', 'bad_cast',
+##    'bad_typeid',           'catch',    'const_cast',
+##    'dynamic_cast',         'except',   'finally',  'namespace',
+##    'reinterpret_cast',     'static_cast',          'throw',
+##    'type_info',            'typeid',   'using',
+##    'xalloc',   'asm',      'typename',
+##    r'(?<!\boperator\b\s*)(?:new|delete)',
+##])
+
 keywords = r'|'.join([
     r'(?<=(?:^|\n)[ \t]*#(?:\\\n|[^\n])*)defined',
-    'auto',     'break',    'case',     'char',     'const',    'continue',
-    'default',  'do',       'double',   r'(?<!#)else',
-    'enum',     'extern',
-    'float',    'for',      'goto',     r'(?<!#)if',
-    'int',      'long',
-    'register', 'return',   'short',    'signed',   'sizeof',   'static',
-    'struct',   'switch',   'typedef',  'union',    'unsigned', 'void',
-    'volatile', 'while',
-    # 'nullptr',
-    'class',    'mutable',  'thread_local',         'friend',
-    'constexpr',            'explicit', 'inline',   'virtual',  'public',
-    'protected',            'private',  'operator', 'template', 'bad_cast',
-    'bad_typeid',           'catch',    'const_cast',
-    'dynamic_cast',         'except',   'finally',  'namespace',
-    'reinterpret_cast',     'static_cast',          'throw',
-    'type_info',            'typeid',   'using',
-    'xalloc',   'asm',      'typename',
+    r'(?<!#)if', r'(?<!#)else',
     r'(?<!\boperator\b\s*)(?:new|delete)',
+    'alignas', 'alignof', r'and(?:_eq)?', 'asm', 'atomic_cancel', 'atomic_commit',
+    'atomic_noexcept', 'auto', 'bitand', 'bitor', 'bool', 'break', 'case',
+    'catch', r'char(?:(?:16|32)_t)?', 'class', 'compl', 'concept',
+    r'const(?:expr|_cast)?', 'continue', 'decltype', 'default',
+##    delete
+    r'do(?:uble)?', 'dynamic_cast',
+##    else
+    'enum', 'explicit', 'export', 'extern',
+##    false
+    'float', 'for', 'friend', 'goto',
+##    if
+    'import', 'inline', 'int', 'long', 'module', 'mutable', 'namespace',
+##    new
+    'noexcept', r'not(?:_eq)?',
+##    nullptr
+    'operator', r'or(?:_eq)?', 'private', 'protected', 'public', 'register',
+    'reinterpret_cast', 'requires', 'return', 'short', 'signed', 'sizeof',
+    r'static(?:_assert|_cast)?', 'struct', 'switch', 'synchronized',
+    'template',
+##    this
+    'thread_local', 'throw',
+##    true
+    'try', 'typedef', 'typeid', 'typename', 'union', 'unsigned', 'using',
+    'virtual', 'void', 'volatile', 'wchar_t', 'while', r'xor(?:_eq)?',
+
+    'override', 'final', r'transaction_safe(?:_dynamic)?',
 ])
+    
 types = r'|'.join([
     'char',     'const',    'double',   'enum',     'float',    'int',
     'long',     'register', 'short',    'signed',   'static',   'struct',
@@ -44,8 +77,8 @@ keyword = [
 preprocessor = [
     r'(?<=#[ \t]*){0}\b'.format(i) for i in [
         'include',  'define',   r'ifn?def', 'endif',    'if',       'elif',
-        'else',     'error',    'warning',  'pragma',   'pragma once',
-        'pragma comment', 'undef',
+        'else',     'error',    'warning',  r'pragma(?:once|comment)?',
+        'undef',    'line',
     ]
 ]
 
@@ -74,7 +107,7 @@ string = [
 number = [
     r'(?<!\w){0}'.format(i) for i in [
         r'(?:\.\d+|\d+\.\d*)(?:[Ee][+-]?\d+)?[FILQfilq]?',
-        r'\d+(?:[Ee][+-]?\d+)',  # todo
+        r'\d+(?:[Ee][+-]?\d+)[FILQfilq]?',  # todo
         r'(?:0[Qq][0-3]+|0[Bb][01]+)',  # todo
         r'(?:0[Xx][\dA-Fa-f]+|0[0-7]+|[1-9]\d*|0)[UILuli]*',
     ]
@@ -104,22 +137,31 @@ identifier = (
     r'\b[_A-Za-z]\w*',
 )
 
+attributes = r'(?<=\[\[)(?:' + r'|'.join([
+    'noreturn', 'carries_dependency', #r'deprecated\("[^"\\]*(?:\\.[^"\\]*)*"\)',
+    'deprecated', 'fallthrough', 'nodiscard', 'maybe_unused',
+    'optimize_for_synchronized',
+]) + r')(?=\]\])' + r'|deprecated(?=\("[^"\\]*(?:\\.[^"\\]*)*"\))'
+
 comment = [
     r'(?P<COMMENT>//(?P<LINE_COMMENT>[^\n]*))',
     r'(?P<BLOCK_COMMENT>/\*[^*]*(?:\*(?:[^/*]|\*(?!/))|[^*])*(?:\*\*?/)?)',
 ]
 
-freq_used_val = [
+kwval = [
     r'\b(?:true|false|this|nullptr)\b'
 ]
 
 KEYWORD = (
-    any('KEYWORD', keyword) + r'|' +
-    any('STL_CLASSES', stl_classes)
+    any('KEYWORD', keyword)
+    + r'|' + any('ATTRIBUTES', [attributes])
+##    + r'|' +
+##    any('STL_CLASSES', stl_classes)
 )
 BUILTIN = (
     any('PREPROCESSOR', preprocessor) + r'|' +
-    any('BUILTIN', number+freq_used_val) + r'|' +
+    any('BUILTIN', number) + r'|' +
+    any('KWVAL', kwval) + r'|' +
     any('OPERATOR', operator)
 )
 COMMENT = r'|'.join(comment)
@@ -148,14 +190,33 @@ SPECIAL_CHAR = (
             r'[abtnvfr\\]|[Xx][0-9A-Fa-f]{1,2}|[0-7]{1,3}'
         r')'
     r')'
+r'|'r'(?P<ASSEMBLY>'
+        r'(?:%(?:%?(?:e?[abcd][xl]|e?[sd]i)|\d+(?![0-9A-Za-z])))'
+    r')'
 r'|'r'(?P<FORMAT>%'
         r'\*?'
         r'(?:[-+ 0#])?'
         r'(?:\d+)?'
         r'(?:\.\d+)?'
         r'(?:[LQhltz]+|I\d+)?'
-        r'(?:[diuoxXcsfeEgGp%]|\[\^?[^]\\]*(?:\\.[^]\\]*)*\])'
+        r'(?:[diuoxXcsfeEFgGp%]|\[\^?[^]\\]*(?:\\.[^]\\]*)*\])'
     r')'
+##r'|'r'(?P<ASSEMBLY>'
+##        r'(?:%(?:%?(?:e?[abcd][xl]|e?[sd]i)|\d+))'
+##    r')'
+
+##r'|'r'(?P<FORMAT>'
+##        r'%'
+##        r'(?:'
+##            r'(?:%?(?:e?[abcd][xl]|e?[sd]i)|\d+(?![0-9A-Za-z]))'  # todo
+##        r'|'r'\*?'
+##            r'(?:[-+ 0#])?'
+##            r'(?:\d+)?'
+##            r'(?:\.\d+)?'
+##            r'(?:[LQhltz]+|I\d+)?'
+##            r'(?:[diuoxXcsfeEgGp%]|\[\^?[^]\\]*(?:\\.[^]\\]*)*\])'
+##        r')'
+##    r')'
 )
 
 def get_parenclose_index(line, parenopen, paren):
@@ -248,7 +309,8 @@ def get_stmt_index(line, begin, end):
 QUALIFIERS = [
     # not treat as type names
     "const", "constexpr", "public", "private", "static", "typename", "virtual",
-    "inline", "new", "delete", "typedef", "goto", "using", "if",
+    "inline", "new", "delete", "typedef", "goto", "using", "if", "friend",
+    "case",
     r"(?:for|while)[ \t]*\(",
 ##    r"[_A-Za-z]\w*[ \t]*::",
 ]
@@ -372,7 +434,7 @@ def is_decl(stmt, begin):
         # not declaration statement
         return False
 
-    if typename.group() in ("if", "else", "return"):
+    if typename.group() in ("if", "else", "return", "case", "goto"):
         return False
 
     if typename.start() == begin:
@@ -454,6 +516,10 @@ def is_decl(stmt, begin):
 
             # ---
             if stmt[end] in "=":
+                if stmt[end+1:].rstrip().startswith('['):
+                    if next_id.start() == begin:
+                        return True
+
                 # xxx non-actual usage
                 end = get_nextpos(stmt, end)
                 if end >= len(stmt):
@@ -591,6 +657,16 @@ def specify_tag(line, begin, end):
     stmt = line.__getslice__(*cstmt)
     len_ws = len(stmt) - len(stmt.lstrip())
 
+    m = regex.match(r'[ \t]*#define[ \t]+', line, pos=cstmt[0])
+    if m:
+        if m.end() == begin:
+            return "DEFINITION"
+        elif end < len(line) and line[end] == '(':
+            return 'BUILTIN'
+        else:
+            return False
+
+
     if line[cstmt[0]:].strip().startswith('}'):
         if not line[cstmt[0]:].strip(" \t}"):
             return False  # xxx
@@ -600,8 +676,12 @@ def specify_tag(line, begin, end):
 
         if line[cstmt[0]:].strip(" \t}").startswith(","):
             return False  # todo
-        if not line[cstmt[0]:].strip(" \t}").startswith("else"):
-            # struct declaretions (xxx conflictions)
+##        if not line[cstmt[0]:].strip(" \t}").startswith("else"):
+##            # struct declaretions (xxx conflictions)
+##            return "DEFINITION"
+
+        firstword = regex.split(r'\W', line[cstmt[0]:].strip(' \t}'), 1)[0]
+        if firstword not in ('else', 'if', 'while', 'case', 'goto'):
             return "DEFINITION"
 
     if name.endswith("_t"):

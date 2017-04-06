@@ -7390,6 +7390,14 @@ CPPREF = {
         'template <class... Types>\n'
         'void swap(tuple<Types...> &lhs, tuple<Types...> &rhs); (since C++11)',
 
+    'abort':
+        '<cstdlib>\n'
+        'causes abnormal program termination (without cleaning up)\n\n'
+
+        'void abort(); (until C++11)\n\n'
+
+        '[[noreturn]] void abort(); (since C++11)',
+
     'exit':
         '<cstdlib>\n'
         'causes normal program termination with cleaning up\n\n'

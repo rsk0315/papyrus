@@ -146,8 +146,14 @@ enable_shell=0
 [EditSnippet_cfgBindings]
 edit-snippet=<Alt-Key-n>
 
-[JudgeTestcase]
+# [JudgeTestcase]
+# enable=1
+# enable_shell=0
+# [JudgeTestcase_cfgBindings]
+# judge-testcase=<Key-F9>
+
+[Submitter]
 enable=1
 enable_shell=0
-[JudgeTestcase_cfgBindings]
-judge-testcase=<Key-F9>
+[Submitter_cfgBindings]
+test-and-submit=<Key-F9>

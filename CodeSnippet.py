@@ -56,7 +56,9 @@ class CodeSnippet(object):
         if sbase+ext in snippet_files:
             snippet_file = os.path.join(path, sbase+ext)
         else:
-            candidate = [s for s in snippet_files if s.startswith(sbase)]
+            # for case-insensitive platform :(
+            candidate = [s for s in snippet_files
+                         if s.lower().startswith(sbase.lower())]
             # todo for auto-completion
             if len(candidate) < 1:
                 return
@@ -66,6 +68,7 @@ class CodeSnippet(object):
         snippet = open(snippet_file).read().rstrip()
         if indent:
             snippet = ('\n'+indent).join(re.split(r'[\r\n]', snippet))
+            snippet = re.sub(r'\n[ \t]+$', '\n', snippet, flags=re.MULTILINE)
 
         if not snippet.endswith('\n'):
             snippet += '\n'

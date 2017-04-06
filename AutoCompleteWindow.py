@@ -3,7 +3,7 @@ An auto-completion window for IDLE, used by the AutoComplete extension
 """
 from Tkinter import *
 from idlelib.MultiCall import MC_SHIFT
-from idlelib.AutoComplete import COMPLETE_FILES, COMPLETE_ATTRIBUTES, COMPLETE_HEADERS
+from idlelib.AutoComplete import COMPLETE_FILES, COMPLETE_ATTRIBUTES, COMPLETE_HEADERS, COMPLETE_NAMESPACE
 
 HIDE_VIRTUAL_EVENT_NAME = "<<autocompletewindow-hide>>"
 HIDE_SEQUENCES = ("<FocusOut>", "<ButtonPress>")
@@ -295,7 +295,7 @@ class AutoCompleteWindow:
 ##            return
 
         #elif (self.mode == COMPLETE_ATTRIBUTES and keysym in
-        elif (self.mode in (COMPLETE_ATTRIBUTES, COMPLETE_HEADERS) and keysym in
+        elif (self.mode in (COMPLETE_ATTRIBUTES, COMPLETE_HEADERS, COMPLETE_NAMESPACE) and keysym in
               ("period", "space", "parenleft", "parenright", "bracketleft",
                "comma", "semicolon", "less", "greater",
                #"bracketright")) or \
@@ -308,7 +308,21 @@ class AutoCompleteWindow:
             # selected completion. Anyway, close the list.
             cursel = int(self.listbox.curselection()[0])
             if self.completions[cursel][:len(self.start)] == self.start \
-               and (self.mode in (COMPLETE_ATTRIBUTES, COMPLETE_HEADERS) or self.start):
+               and (self.mode in (COMPLETE_ATTRIBUTES, COMPLETE_HEADERS, COMPLETE_NAMESPACE) or self.start):
+##               and (self.mode in (COMPLETE_ATTRIBUTES, COMPLETE_HEADERS) or self.start):
+                self._change_start(self.completions[cursel])
+            self.hide_window()
+            return
+
+        elif (self.mode in (COMPLETE_NAMESPACE,) and keysym in ("colon",)) \
+             and not (state & ~MC_SHIFT):
+            # If start is a prefix of the selection, but is not '' when
+            # completing file names, put the whole
+            # selected completion. Anyway, close the list.
+            cursel = int(self.listbox.curselection()[0])
+            if self.completions[cursel][:len(self.start)] == self.start \
+               and (self.mode in (COMPLETE_ATTRIBUTES, COMPLETE_HEADERS, COMPLETE_NAMESPACE) or self.start):
+##               and (self.mode in (COMPLETE_ATTRIBUTES, COMPLETE_HEADERS) or self.start):
                 self._change_start(self.completions[cursel])
             self.hide_window()
             return

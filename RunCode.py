@@ -137,6 +137,9 @@ class RunCode(object):
         self.subwin = Toplevel(self.text)
         self.subwin.title('Standard Streams')
 
+        self.subwin.bind('<Escape>', self._close_window)
+        self.subwin.bind('<Key-F8>', lambda e: self.text.focus_set())
+
         kwargs = {
             'width': 40, 'height': 8,
             'bg': 'black',

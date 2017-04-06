@@ -62,7 +62,7 @@ class EditSnippet(object):
             f for f in os.listdir(snippet_path)
             if (
                 os.path.isfile(os.path.join(snippet_path, f))
-                and f.startswith(name)
+                and f.lower().startswith(name.lower())
             )
         ]
         self.path = ''

@@ -17,14 +17,20 @@ FILENAME_CHARS = string.ascii_letters + string.digits + os.curdir + "._~#$:-"
 ID_CHARS = string.ascii_letters + string.digits + "_"
 # todo ---
 INCLUDE_CHARS = string.ascii_letters + string.digits + os.curdir + "</_"
+NAMESPACE_CHARS = string.ascii_letters + string.digits + ":_"
 # ---
 
 # These constants represent the two different types of completions
 COMPLETE_ATTRIBUTES, COMPLETE_FILES = range(1, 2+1)
 COMPLETE_HEADERS = 3
+COMPLETE_NAMESPACE = 4
 
 from idlelib import AutoCompleteWindow
 from idlelib.HyperParser import HyperParser
+
+from idlelib.languages._cpp_stdnamespace import STD_NAMESPACE
+from idlelib.languages._cpp_stdattrs import STD_CLASS_ATTRS
+from idlelib.languages._cpp_parser import CppParser
 
 import __main__
 
@@ -143,22 +149,55 @@ class AutoComplete:
             mode = COMPLETE_ATTRIBUTES
             # while i and curline[i-1] in ID_CHARS:
             # todo ---
+            tail = self.text.get('insert linestart', 'insert').rstrip(ID_CHARS+' \t')
+
             if re.search(r'^[ \t]*#include[ \t]*<?', curline, flags=re.M):
                 if re.search(r'^[ \t]*#include[ \t]*$', curline, flags=re.M):
-                    self.text.insert('insert lineend', '<')
-                    curline = self.text.get('insert linestart', 'insert')
-                    i += 1
+                    self.text.insert('insert', '<')
+##                    curline = self.text.get('insert linestart', 'insert')
+                    curline += '<'
+##                    i += 1
                     j += 1
+                else:
+                    i -= 1
 
                 charset = INCLUDE_CHARS
                 mode = COMPLETE_HEADERS
+##            elif '::' in self.text.get('insert linestart', 'insert'):
+##                charset = NAMESPACE_CHARS
+##                mode = COMPLETE_NAMESPACE
+##                comp_what = ''
+##            else:
+##                charset = ID_CHARS
+            elif tail.endswith(':') or tail.endswith('>'):
+                charset = NAMESPACE_CHARS
+                mode = COMPLETE_NAMESPACE
+                comp_what = ''
             else:
                 charset = ID_CHARS
+
+##            print `curline[i:]`, 1
             while i and curline[i-1] in charset:
             # ---
+                if mode == COMPLETE_HEADERS and curline[i] == '<':
+                    break
+
                 i -= 1
                 if mode == COMPLETE_HEADERS and curline[i] == '<':
                     break
+                elif mode == COMPLETE_NAMESPACE:
+                    if curline[:i+1].endswith('::'):
+                        i += 1
+
+                        ## comp_what = curline[:i].split()[-1]
+                        ## hack: foo<T, U>
+                        ##     : foo < T >
+
+                        comp_what = re.split(r'\w?[ \t=<(]+(?=[_A-Za-z])', curline[:i])[-1]
+                        break
+
+##            print mode, COMPLETE_HEADERS
+##            print `curline[i:]`, 2
 
             comp_start = curline[i:j]
             if i and curline[i-1] == '.':
@@ -168,9 +207,12 @@ class AutoComplete:
                    (not evalfuncs and comp_what.find('(') != -1):
                     return
             else:
-                comp_what = ""
+                if mode not in (COMPLETE_NAMESPACE,):
+                    comp_what = ""
         else:
             return
+
+##        print `comp_start, comp_what`
 
         if complete and not comp_what and not comp_start:
             return
@@ -229,14 +271,51 @@ class AutoComplete:
                         smalll = [s for s in bigl if s[:1] != '_']
                 else:
                     try:
-                        entity = self.get_entity(what)
-                        bigl = dir(entity)
-                        bigl.sort()
-                        if "__all__" in bigl:
-                            smalll = sorted(entity.__all__)
-                        else:
-                            smalll = [s for s in bigl if s[:1] != '_']
-                    except:
+                        ext = self.editwin.ext
+                        if ext in ('.py', '.pyw'):
+                            entity = self.get_entity(what)
+                            bigl = dir(entity)
+                            bigl.sort()
+                            if "__all__" in bigl:
+                                smalll = sorted(entity.__all__)
+                            else:
+                                smalll = [s for s in bigl if s[:1] != '_']
+                        elif ext in ('.cpp', '.hpp'):
+                            cp = CppParser(self.editwin)
+                            typename = cp.get_type('insert', what)
+##                            print `what, typename`
+                            if typename is None:
+                                # cannot find declaration stmt
+                                bigl = ['', '---', 'Could not find', 'declaration stmt']
+                                return bigl, bigl[:]
+###
+                            typename = CppParser.remove_templateargs(typename)
+                            if typename.startswith('std::'):
+                                # todo
+                                typename = typename[5:]
+
+                            print `typename`
+                            if (
+                                    typename not in STD_CLASS_ATTRS or
+                                    not STD_CLASS_ATTRS[typename]
+                            ):
+                                bigl = ['', 'No completion found']
+                                return bigl, bigl[:]
+
+                            bigl = [
+                                w.lstrip('.:')
+                                for w in STD_CLASS_ATTRS[typename]
+                                if ((w.startswith(':') and
+                                     not w.startswith('::')) or
+                                    w.startswith('.'))
+                            ]
+                            bigl = sorted(list(set(bigl)))
+###
+                            smalll = bigl[:]
+##                    except:
+##                    except Exception as e:
+                    except Exception as e:
+                        print e
                         return [], []
 
             elif mode == COMPLETE_FILES:
@@ -268,6 +347,39 @@ class AutoComplete:
                 bigl = sorted(list(set(bigl)))
 
                 smalll = None
+
+            elif mode == COMPLETE_NAMESPACE:
+                # xxx ><
+                if not what: what = 'std::'
+                if what.endswith(':::'): return [], []
+                if not what.endswith('::'): return [], []
+
+                what = what[:-2]
+                if what == "":
+                    # global scope
+                    return [], []
+
+                bigl = []
+                if what == 'std':
+                    bigl = STD_NAMESPACE
+                else:
+                    what = CppParser.remove_templateargs(what)
+                    if what.startswith('std::'):
+                        # todo
+                        what = what[5:]
+
+##                    print `what`
+
+                    try:
+                        bigl = [
+                            w.lstrip(':') for w in STD_CLASS_ATTRS[what]
+                            if w.startswith(':')
+                        ]
+                    except KeyError:
+                        return [], []
+                    bigl = sorted(list(set(bigl)))
+
+                smalll = []
 
             if not smalll:
                 smalll = bigl

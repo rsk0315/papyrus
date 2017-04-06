@@ -81,6 +81,7 @@ FILETYPES = {
     '.ws': 'Whitespace',
     '.bf': 'Brainf*ck',
     '.txt': 'Text',
+    '.pseudo': 'Pseudo',
 }  # TODO
 
 class EncodingMessage(SimpleDialog):

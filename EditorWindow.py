@@ -38,6 +38,7 @@ FILETYPES = {
     '.ws': 'Whitespace',
     '.bf': 'Brainf*ck',
     '.txt': 'Text',
+    '.pseudo': 'Pseudo',
 }  # TODO
 ALT_EXT = {
     '.pyw': '.py',
@@ -660,6 +661,8 @@ class EditorWindow(object):
                 # --------
                 menudict['highlight'].add_radiobutton(label='Plain text', underline=8,
                     variable=self.ftype, value='Text', command=self.hilite_as('.txt'))
+                menudict['highlight'].add_radiobutton(label='Pseudo code', underline=1,
+                    variable=self.ftype, value='Pseudo', command=self.hilite_as('.pseudo'))
         except (AttributeError, KeyError) as e:
             pass  # print e
 
